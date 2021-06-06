@@ -46,8 +46,8 @@ def auth(login: str, password: str):
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
         res = cursor.fetchall()[0][0].encode('utf-8')
-        print(bcrypt.checkpw(password, res))
-        return bcrypt.checkpw(password, res)
+        print(bcrypt.checkpw(password.encode('utf-8'), res))
+        return bcrypt.checkpw(password.encode('utf-8'), res)
         """
         try:
             pass
