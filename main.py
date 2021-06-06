@@ -45,12 +45,15 @@ def auth(login: str, password: str):
     try:
         connect, cursor = db_connect()
         cursor.execute("SELECT password FROM users WHERE login='{0}'".format(login))
-        res = cursor.fetchall()[0][0]
+        res = cursor.fetchall()[0][0].encode('utf-8')
         print(bcrypt.checkpw(password, res))
+        return bcrypt.checkpw(password, res)
+        """
         try:
             pass
         except IndexError:
             return JSONResponse(status_code=403)
+        """
     except Exception as e:
         error_log(e)
 
