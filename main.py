@@ -39,34 +39,60 @@ async def http_exception_handler(request, exc):
         return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
 """
 
+"""
+        try:
+            pass
+        except IndexError:
+            return JSONResponse(status_code=403)
+        """
+
+
+@app.get("/create_tables")
+def create_tables():
+    connect, cursor = db_connect()
+    try:
+        # cursor.execute("DROP TABLE messages")
+        # cursor.execute("DROP TABLE users")
+        # cursor.execute("DROP TABLE chats")
+        # debug(cursor)
+        cursor.execute('CREATE TABLE IF NOT EXISTS users(id INTEGER,'
+                       'login TEXT,'
+                       'password TEXT,'
+                       'pubkey TEXT,'
+                       'email TEXT)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
+                       'name TEXT,'
+                       'owner INTEGER)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS messages(date TIMESTAMP,'
+                       'from_id TEXT,'
+                       'to_id TEXT,'
+                       'message BYTEA,'
+                       'message1 BYTEA,'
+                       'file TEXT,'
+                       'read INTEGER)')
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
+    except Exception as e:
+        error_log(e)
+
+
+@app.get("/user/get_id")
+def get_id(login: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+    return cursor.fetchall()[0][0]
+
 
 @app.get("/auth")
 def auth(login: str, password: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
-        res = cursor.fetchall()[0][0].encode('utf-8')
-        print(bcrypt.checkpw(password.encode('utf-8'), res))
-        return bcrypt.checkpw(password.encode('utf-8'), res)
-        """
-        try:
-            pass
-        except IndexError:
-            return JSONResponse(status_code=403)
-        """
+        return bcrypt.checkpw(password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
     except IndexError:
         return None
-    except Exception as e:
-        error_log(e)
-
-
-@app.get("/api/reports")
-def get_all_reports(sorted_by: Optional[str] = None):
-    try:
-        try:
-            pass
-        except IndexError:
-            return JSONResponse(status_code=403)
     except Exception as e:
         error_log(e)
 
