@@ -16,6 +16,14 @@ class User(BaseModel):
     email: str
 
 
+class Message(BaseModel):
+    date: str
+    sender: str
+    destination: str
+    message: str
+    message1: str
+
+
 app = FastAPI()
 
 
@@ -87,10 +95,46 @@ def create_tables():
         error_log(e)
 
 
+@app.get("/auth")
+def auth(login: str, password: str):
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
+        return bcrypt.checkpw(password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
+    except IndexError:
+        return None
+    except Exception as e:
+        error_log(e)
+
+
+@app.get("/user/can_use_login")
+def can_use_login(login: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+    return cursor.fetchall()[0][0]
+
+
 @app.get("/user/get_id")
 def get_id(login: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+    return cursor.fetchall()[0][0]
+
+
+@app.get("/user/get_nickname")
+def get_nickname(id: int):
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT login FROM users WHERE id={id}")
+        return cursor.fetchall()[0][0]
+    except IndexError:
+        return None
+
+
+@app.get("/user/get_pubkey")
+def get_pubkey(id: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
     return cursor.fetchall()[0][0]
 
 
@@ -120,30 +164,17 @@ def create_user(user: User):
             max_id = 0
         cursor.execute(f"INSERT INTO users VALUES ({max_id},'{user.login}','{user.password}','{user.pubkey}',"
                        f"'{user.email}')")
-
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
         return JSONResponse(status_code=200)
 
 
-@app.get("/user/can_use_login")
-def can_use_login(login: str):
+@app.get("/messages/send")
+def get_pubkey(id: str):
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+    cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
     return cursor.fetchall()[0][0]
-
-
-@app.get("/auth")
-def auth(login: str, password: str):
-    try:
-        connect, cursor = db_connect()
-        cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
-        return bcrypt.checkpw(password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
-    except IndexError:
-        return None
-    except Exception as e:
-        error_log(e)
 
 
 @app.put("/api/reports/{id}")
