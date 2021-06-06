@@ -2,10 +2,19 @@ from typing import Optional
 from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from pydantic import BaseModel
 import psycopg2
 import datetime
 import os
 import bcrypt
+
+
+class User(BaseModel):
+    login: str
+    password: str
+    pubkey: str
+    email: str
+
 
 app = FastAPI()
 
@@ -80,6 +89,32 @@ def create_tables():
 
 @app.get("/user/get_id")
 def get_id(login: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+    return cursor.fetchall()[0][0]
+
+
+@app.post("/user/create")
+def create_user(user: User):
+    try:
+        connect, cursor = db_connect()
+        cursor.execute("SELECT MAX(id) FROM users")
+        max_id = cursor.fetchall()[0][0]
+        if max_id is not None:
+            max_id += 1
+        else:
+            max_id = 0
+        cursor.execute(f"INSERT INTO users VALUES ({max_id},'{user.login}','{user.password}','{user.pubkey}',"
+                       f"'{user.email}')")
+
+        return JSONResponse(status_code=200)
+    except Exception as e:
+        error_log(e)
+        return JSONResponse(status_code=200)
+
+
+@app.get("/user/can_use_login")
+def can_use_login(login: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     return cursor.fetchall()[0][0]
