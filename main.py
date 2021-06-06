@@ -94,6 +94,20 @@ def get_id(login: str):
     return cursor.fetchall()[0][0]
 
 
+@app.get("/user/get_groups")
+def get_groups(user_id: int):
+    connect, cursor = db_connect()
+    groups = []
+    cursor.execute("SELECT name FROM chats")
+    res = cursor.fetchall()
+    for el in res:
+        cursor.execute(f"SELECT COUNT(id) FROM {el[0]} WHERE id='{user_id}'")
+        tmp = cursor.fetchall()[0][0]
+        if tmp == 1:
+            groups.append(el[0])
+    return groups
+
+
 @app.post("/user/create")
 def create_user(user: User):
     try:
