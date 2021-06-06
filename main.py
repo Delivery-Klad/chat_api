@@ -5,18 +5,18 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import psycopg2
 import datetime
 import os
+import bcrypt
 
 app = FastAPI()
 
 
 def db_connect():
     con = psycopg2.connect(
-        host="ec2-52-213-167-210.eu-west-1.compute.amazonaws.com",
-        database=os.environ.get("DB"),
-        user=os.environ.get("DB_user"),
+        host="ec2-54-247-107-109.eu-west-1.compute.amazonaws.com",
+        database="de81d5uf5eagcd",
+        user="guoucmhwdhynrf",
         port="5432",
-        password=os.environ.get("DB_pass")
-    )
+        password="7720bda9eb76c990aee593f9064fa653136e3a047f989f53856b37549549ebe6")
     cur = con.cursor()
     return con, cur
 
@@ -38,6 +38,21 @@ async def http_exception_handler(request, exc):
     else:
         return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
 """
+
+
+@app.get("/auth")
+def auth(login: str, password: str):
+    try:
+        connect, cursor = db_connect()
+        cursor.execute("SELECT password FROM users WHERE login='{0}'".format(login))
+        res = cursor.fetchall()[0][0]
+        print(bcrypt.checkpw(password, res))
+        try:
+            pass
+        except IndexError:
+            return JSONResponse(status_code=403)
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/api/reports")
