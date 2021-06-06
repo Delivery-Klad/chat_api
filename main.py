@@ -20,8 +20,8 @@ class Message(BaseModel):
     date: str
     sender: str
     destination: str
-    message: str
-    message1: str
+    message: psycopg2.Binary
+    message1: psycopg2.Binary
 
 
 app = FastAPI()
@@ -170,11 +170,21 @@ def create_user(user: User):
         return JSONResponse(status_code=200)
 
 
-@app.get("/messages/send")
-def get_pubkey(id: str):
+@app.post("/messages/send")
+def send_message(message: Message):
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
-    return cursor.fetchall()[0][0]
+    cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
+                   f"'{message.sender}','{message.destination}', {message.message}, {message.message1}, '-', 0)")
+    connect.commit()
+    return JSONResponse(status_code=200)
+
+
+@app.get("/messages/get")
+def get_message(id: int):
+    connect, cursor = db_connect()
+    
+    connect.commit()
+    return JSONResponse(status_code=200)
 
 
 @app.put("/api/reports/{id}")
