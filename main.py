@@ -41,19 +41,21 @@ async def http_exception_handler(request, exc):
 
 
 @app.get("/auth")
-def auth(login: str, password: str):
+def auth(login: str, password: bytes):
     try:
         connect, cursor = db_connect()
         cursor.execute("SELECT password FROM users WHERE login='{0}'".format(login))
         res = cursor.fetchall()[0][0].encode('utf-8')
-        print(bcrypt.checkpw(password.encode('utf-8'), res))
-        return bcrypt.checkpw(password.encode('utf-8'), res)
+        print(bcrypt.checkpw(password, res))
+        return bcrypt.checkpw(password, res)
         """
         try:
             pass
         except IndexError:
             return JSONResponse(status_code=403)
         """
+    except IndexError:
+        return None
     except Exception as e:
         error_log(e)
 
