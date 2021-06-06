@@ -41,10 +41,10 @@ async def http_exception_handler(request, exc):
 
 
 @app.get("/auth")
-def auth(login: str, password: bytes):
+def auth(login: str, password: str):
     try:
         connect, cursor = db_connect()
-        cursor.execute("SELECT password FROM users WHERE login='{0}'".format(login))
+        cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
         res = cursor.fetchall()[0][0].encode('utf-8')
         print(bcrypt.checkpw(password, res))
         return bcrypt.checkpw(password, res)
