@@ -171,7 +171,7 @@ def create_user(user: User):
         cursor.execute(f"INSERT INTO users VALUES ({max_id},'{user.login}','{user.password}','{user.pubkey}',"
                        f"'{user.email}')")
         connect.commit()
-        return JSONResponse(status_code=200)
+        return True
     except Exception as e:
         error_log(e)
         return JSONResponse(status_code=500)
@@ -207,6 +207,11 @@ def create_user(login: str, old_password: str, new_password: str):
     except Exception as e:
         error_log(e)
         return JSONResponse(status_code=500)
+
+
+@app.get("/chat/get_id")
+def get_chat_id():
+    pass
 
 
 @app.post("/message/send")
