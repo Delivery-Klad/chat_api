@@ -20,8 +20,8 @@ class Message(BaseModel):
     date: str
     sender: str
     destination: str
-    message: str
-    message1: str  # fix
+    message: bytes
+    message1: bytes  # fix
 
 
 app = FastAPI()
@@ -88,6 +88,8 @@ def create_tables():
                        'file TEXT,'
                        'read INTEGER)')
         connect.commit()
+        cursor.execute('SELECT * FROM messages')
+        print(cursor.fetchall())
         cursor.close()
         connect.close()
         return True
@@ -175,8 +177,8 @@ def send_message(message: Message):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{message.sender}','{message.destination}', {message.message.encode('utf-8')},"
-                       f"{message.message1.encode('utf-8')}, '-', 0)")
+                       f"'{message.sender}','{message.destination}', {message.message},"
+                       f"{message.message1}, '-', 0)")
         connect.commit()
         return JSONResponse(status_code=200)
     except Exception as e:
@@ -184,10 +186,19 @@ def send_message(message: Message):
 
 
 @app.get("/messages/get")
-def get_message(id: int):
+def get_message(user_id: int, chat_id: int):
     connect, cursor = db_connect()
-
+    cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
+                   "ORDER BY date")
+    res = cursor.fetchall()
+    cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
+                   "ORDER BY date")
+    res += cursor.fetchall()
+    cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     connect.commit()
+    res.sort()
+    print(res)
+    print(type(res))
     return JSONResponse(status_code=200)
 
 
