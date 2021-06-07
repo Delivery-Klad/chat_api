@@ -172,11 +172,15 @@ def create_user(user: User):
 
 @app.post("/messages/send")
 def send_message(message: Message):
-    connect, cursor = db_connect()
-    cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                   f"'{message.sender}','{message.destination}', {message.message}, {message.message1}, '-', 0)")
-    connect.commit()
-    return JSONResponse(status_code=200)
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
+                       f"'{message.sender}','{message.destination}', {message.message.encode('utf-8')},"
+                       f"{message.message1.encode('utf-8')}, '-', 0)")
+        connect.commit()
+        return JSONResponse(status_code=200)
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/messages/get")
