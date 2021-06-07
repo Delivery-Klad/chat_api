@@ -192,7 +192,8 @@ def create_user(login: str, old_password: str, new_password: str):
     try:
         res = auth(login, old_password)
         if res:
-            cursor.execute(f"UPDATE users SET password='{login}' WHERE login='{new_password}'")
+            cursor.execute(f"UPDATE users SET password='{new_password}' WHERE login='{login}'")
+            connect.commit()
             return True
         elif res is None:
             return None
