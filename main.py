@@ -20,8 +20,8 @@ class Message(BaseModel):
     date: str
     sender: str
     destination: str
-    message: psycopg2.Binary
-    message1: psycopg2.Binary
+    message: str
+    message1: str  # fix
 
 
 app = FastAPI()
@@ -182,7 +182,7 @@ def send_message(message: Message):
 @app.get("/messages/get")
 def get_message(id: int):
     connect, cursor = db_connect()
-    
+
     connect.commit()
     return JSONResponse(status_code=200)
 
