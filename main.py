@@ -169,10 +169,41 @@ def create_user(user: User):
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
-        return JSONResponse(status_code=404)
+        return JSONResponse(status_code=500)
 
 
-@app.post("/messages/send")
+@app.post("/user/update_pubkey")
+def create_user(pubkey: str, user_id: User):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"UPDATE users SET pubkey='{pubkey}' WHERE id={user_id}")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return JSONResponse(status_code=200)
+    except Exception as e:
+        error_log(e)
+        return JSONResponse(status_code=500)
+
+
+@app.post("/user/update_password")
+def create_user(login: str, old_password: str, new_password: str):
+    connect, cursor = db_connect()
+    try:
+        res = auth(login, old_password)
+        if res:
+            cursor.execute(f"UPDATE users SET password='{login}' WHERE login='{new_password}'")
+            return True
+        elif res is None:
+            return None
+        else:
+            return False
+    except Exception as e:
+        error_log(e)
+        return JSONResponse(status_code=500)
+
+
+@app.post("/message/send")
 def send_message(message: Message):
     try:
         connect, cursor = db_connect()
@@ -183,10 +214,10 @@ def send_message(message: Message):
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
-        return JSONResponse(status_code=404)
+        return JSONResponse(status_code=500)
 
 
-@app.get("/messages/get")
+@app.get("/message/get")  # нельзя вернуть массив, переделать на json
 def get_message(user_id: int, chat_id: int):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
