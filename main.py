@@ -169,7 +169,7 @@ def create_user(user: User):
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
-        return JSONResponse(status_code=200)
+        return JSONResponse(status_code=404)
 
 
 @app.post("/messages/send")
@@ -183,6 +183,7 @@ def send_message(message: Message):
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
+        return JSONResponse(status_code=404)
 
 
 @app.get("/messages/get")
@@ -199,7 +200,7 @@ def get_message(user_id: int, chat_id: int):
     res.sort()
     print(res)
     print(type(res))
-    return JSONResponse(status_code=200)
+    return res
 
 
 @app.put("/api/reports/{id}")
