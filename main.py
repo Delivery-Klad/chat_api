@@ -113,7 +113,11 @@ def auth(login: str, password: str):
 def can_use_login(login: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-    return cursor.fetchall()[0][0]
+    try:
+        cursor.fetchall()[0][0]
+    except IndexError:
+        return True
+    return False
 
 
 @app.get("/user/get_id")
