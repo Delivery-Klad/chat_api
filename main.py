@@ -170,6 +170,7 @@ def create_user(user: User):
             max_id = 0
         cursor.execute(f"INSERT INTO users VALUES ({max_id},'{user.login}','{user.password}','{user.pubkey}',"
                        f"'{user.email}')")
+        connect.commit()
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
