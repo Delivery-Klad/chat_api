@@ -186,7 +186,7 @@ def create_user(pubkey: str, user_id: User):
         return JSONResponse(status_code=500)
 
 
-@app.post("/user/update_password")
+@app.get("/user/update_password")
 def create_user(login: str, old_password: str, new_password: str):
     connect, cursor = db_connect()
     try:
