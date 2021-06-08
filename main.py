@@ -1,3 +1,4 @@
+import random
 from typing import Optional
 from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -7,6 +8,9 @@ import psycopg2
 import datetime
 import os
 import bcrypt
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 
 class User(BaseModel):
@@ -29,7 +33,21 @@ class Invite(BaseModel):
     user: str
 
 
+class NewPubkey(BaseModel):
+    login: str
+    password: str
+    pubkey: str
+    user_id: str
+
+
+class NewPassword(BaseModel):
+    login: str
+    old_password: str
+    new_password: str
+
+
 app = FastAPI()
+recovery_codes = []
 
 
 def db_connect():
@@ -67,6 +85,38 @@ async def http_exception_handler(request, exc):
         except IndexError:
             return JSONResponse(status_code=403)
         """
+
+
+@app.post("/recovery")
+def create_tables(login: str):
+    connect, cursor = db_connect()
+    try:
+        user_id = get_id(login)
+        cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
+        email = cursor.fetchall()[0][0]
+        print(email)
+        code = random.randint(100000, 999999)
+        password = "d8fi2kbfpchos"
+        mail_login = "recovery.chat@mail.ru"
+        url = "smtp.mail.ru"
+        server = smtplib.SMTP_SSL(url, 465)
+        title = "Recovery code"
+        text = "Your code: {0}".format(code)
+        msg = MIMEMultipart()
+        msg['Subject'] = title
+        msg['From'] = mail_login
+        body = text
+        msg.attach(MIMEText(body, 'plain'))
+        try:
+            server.login(mail_login, password)
+            server.sendmail(mail_login, email, msg.as_string())
+        except Exception as e:
+            print(f'Error {e}')
+            return False
+        return True
+    except Exception as e:
+        error_log(e)
+        return None
 
 
 @app.get("/create_tables")
@@ -182,27 +232,30 @@ def create_user(user: User):
         return JSONResponse(status_code=500)
 
 
-@app.post("/user/update_pubkey")
-def create_user(pubkey: str, user_id: User):
+@app.put("/user/update_pubkey")
+def create_user(pubkey: NewPubkey):
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"UPDATE users SET pubkey='{pubkey}' WHERE id={user_id}")
-        connect.commit()
-        cursor.close()
-        connect.close()
-        return JSONResponse(status_code=200)
+        res = auth(pubkey.login, pubkey.password)
+        if res:
+            cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE id={pubkey.user_id}")
+            connect.commit()
+            cursor.close()
+            connect.close()
+            return True
+        return False
     except Exception as e:
         error_log(e)
         return JSONResponse(status_code=500)
 
 
-@app.get("/user/update_password")
-def create_user(login: str, old_password: str, new_password: str):
+@app.put("/user/update_password")
+def create_user(data: NewPassword):
     connect, cursor = db_connect()
     try:
-        res = auth(login, old_password)
+        res = auth(data.login, data.old_password)
         if res:
-            cursor.execute(f"UPDATE users SET password='{new_password}' WHERE login='{login}'")
+            cursor.execute(f"UPDATE users SET password='{data.new_password}' WHERE login='{data.login}'")
             connect.commit()
             return True
         elif res is None:
@@ -260,7 +313,7 @@ def get_chat_owner(group_id: str):
     return res
 
 
-@app.post("/chat/invite")
+@app.post("/chat/invite")  # пароль и логин
 def chat_invite(invite: Invite):
     connect, cursor = db_connect()
     cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
@@ -270,7 +323,7 @@ def chat_invite(invite: Invite):
     return JSONResponse(status_code=200)
 
 
-@app.post("/chat/kick")
+@app.post("/chat/kick")  # пароль и логин
 def chat_kick(invite: Invite):
     connect, cursor = db_connect()
     cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
@@ -309,11 +362,3 @@ def get_message(user_id: int, chat_id: int):
     print(res)
     print(type(res))
     return res
-
-
-# git@app.put("/api/reports/{id}")
-def update_report():
-    try:
-        pass
-    except Exception as e:
-        error_log(e)
