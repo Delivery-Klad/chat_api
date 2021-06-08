@@ -46,8 +46,15 @@ class NewPassword(BaseModel):
     new_password: str
 
 
+class ResetPassword(BaseModel):
+    code: str
+    login: str
+    password: str
+
+
 app = FastAPI()
 recovery_codes = []
+secret = "root"
 
 
 def db_connect():
@@ -87,15 +94,16 @@ async def http_exception_handler(request, exc):
         """
 
 
-@app.post("/recovery")
-def create_tables(login: str):
+@app.post("/recovery/send")
+def recovery_send(login: str):
     connect, cursor = db_connect()
     try:
         user_id = get_id(login)
         cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
         email = cursor.fetchall()[0][0]
-        print(email)
         code = random.randint(100000, 999999)
+        recovery_codes.append(f"{login}_{code}")
+        print(code)
         password = "d8fi2kbfpchos"
         mail_login = "recovery.chat@mail.ru"
         url = "smtp.mail.ru"
@@ -119,32 +127,50 @@ def create_tables(login: str):
         return None
 
 
-@app.get("/create_tables")
-def create_tables():
+@app.post("/recovery/validate")
+def recovery_validate(data: ResetPassword):
+    for i in recovery_codes:
+        res = i.split(data.login)
+        print(res)
+
+
+@app.get("/tables/create")
+def create_tables(key: str):
     connect, cursor = db_connect()
     try:
-        # cursor.execute("DROP TABLE messages")
-        # cursor.execute("DROP TABLE users")
-        # cursor.execute("DROP TABLE chats")
-        # debug(cursor)
-        cursor.execute('CREATE TABLE IF NOT EXISTS users(id INTEGER,'
-                       'login TEXT,'
-                       'password TEXT,'
-                       'pubkey TEXT,'
-                       'email TEXT)')
-        cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
-                       'name TEXT,'
-                       'owner INTEGER)')
-        cursor.execute('CREATE TABLE IF NOT EXISTS messages(date TIMESTAMP,'
-                       'from_id TEXT,'
-                       'to_id TEXT,'
-                       'message BYTEA,'
-                       'message1 BYTEA,'
-                       'file TEXT,'
-                       'read INTEGER)')
+        if key == secret:
+            cursor.execute('CREATE TABLE IF NOT EXISTS users(id INTEGER,'
+                           'login TEXT,'
+                           'password TEXT,'
+                           'pubkey TEXT,'
+                           'email TEXT)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
+                           'name TEXT,'
+                           'owner INTEGER)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS messages(date TIMESTAMP,'
+                           'from_id TEXT,'
+                           'to_id TEXT,'
+                           'message BYTEA,'
+                           'message1 BYTEA,'
+                           'file TEXT,'
+                           'read INTEGER)')
         connect.commit()
-        cursor.execute('SELECT * FROM messages')
-        print(cursor.fetchall())
+        cursor.close()
+        connect.close()
+        return True
+    except Exception as e:
+        error_log(e)
+
+
+@app.delete("/tables/drop")
+def create_tables(key: str):
+    connect, cursor = db_connect()
+    try:
+        if key == secret:
+            cursor.execute("DROP TABLE messages")
+            cursor.execute("DROP TABLE users")
+            cursor.execute("DROP TABLE chats")
+            connect.commit()
         cursor.close()
         connect.close()
         return True
