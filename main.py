@@ -177,6 +177,18 @@ def create_tables(key: str):
         error_log(e)
 
 
+@app.get("/tables/check")
+def check_tables(key: str, table: str):
+    connect, cursor = db_connect()
+    try:
+        if key == secret:
+            cursor.execute(f"SELECT * FROM {table}")
+            return cursor.fetchall()
+        return False
+    except Exception as e:
+        error_log(e)
+
+
 @app.delete("/tables/drop")
 def create_tables(key: str):
     connect, cursor = db_connect()
@@ -403,3 +415,19 @@ def get_message(user_id: int, chat_id: int):
     print(res)
     print(type(res))
     return res
+
+
+@app.get("/message/loop")
+def get_loop_messages(user_id: int, chat_id: int):
+    pass
+
+
+@app.post("/documents/send")
+def send_document():
+    pass
+
+
+@app.get("/documents/get")
+def get_document():
+    pass
+
