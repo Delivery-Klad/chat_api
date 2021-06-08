@@ -21,7 +21,7 @@ class Message(BaseModel):
     sender: str
     destination: str
     message: bytes
-    message1: bytes  # fix
+    message1: bytes
 
 
 app = FastAPI()
@@ -214,13 +214,23 @@ def get_chat_id():
     pass
 
 
+@app.get("/chat/get_name")
+def get_chat_name():
+    pass
+
+
+@app.get("/chat/get_users")
+def get_chat_users():
+    pass
+
+
 @app.post("/message/send")
 def send_message(message: Message):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{message.sender}','{message.destination}', {message.message},"
-                       f"{message.message1}, '-', 0)")
+                       f"'{message.sender}','{message.destination}', {psycopg2.Binary(message.message)},"
+                       f"{psycopg2.Binary(message.message1)}, '-', 0)")
         connect.commit()
         return JSONResponse(status_code=200)
     except Exception as e:
