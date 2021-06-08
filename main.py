@@ -20,8 +20,13 @@ class Message(BaseModel):
     date: str
     sender: str
     destination: str
-    message: bytes
-    message1: bytes
+    message: str
+    message1: str
+
+
+class Invite(BaseModel):
+    name: str
+    user: str
 
 
 app = FastAPI()
@@ -210,18 +215,69 @@ def create_user(login: str, old_password: str, new_password: str):
 
 
 @app.get("/chat/get_id")
-def get_chat_id():
-    pass
+def get_chat_id(name: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
+    group_id = cursor.fetchall()[0][0]
+    cursor.close()
+    connect.close()
+    return group_id
+
+
+@app.get("/chat/get_max_id")
+def get_max_chat_id():
+    connect, cursor = db_connect()
+    cursor.execute("SELECT COUNT(*) FROM chats")
+    res = cursor.fetchall()[0]
+    res = str(res).split(',', 1)[0]
+    cursor.close()
+    connect.close()
+    return int(str(res)[1:])
 
 
 @app.get("/chat/get_name")
-def get_chat_name():
-    pass
+def get_chat_name(group_id: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
+    name = cursor.fetchall()[0][0]
+    cursor.close()
+    connect.close()
+    return name
 
 
 @app.get("/chat/get_users")
 def get_chat_users():
     pass
+
+
+@app.get("/chat/get_owner")
+def get_chat_owner(group_id: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT owner FROM chats WHERE id='{group_id}'")
+    res = cursor.fetchall()[0][0]
+    cursor.close()
+    connect.close()
+    return res
+
+
+@app.post("/chat/invite")
+def chat_invite(invite: Invite):
+    connect, cursor = db_connect()
+    cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
+    connect.commit()
+    cursor.close()
+    connect.close()
+    return JSONResponse(status_code=200)
+
+
+@app.post("/chat/kick")
+def chat_kick(invite: Invite):
+    connect, cursor = db_connect()
+    cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
+    connect.commit()
+    cursor.close()
+    connect.close()
+    return JSONResponse(status_code=200)
 
 
 @app.post("/message/send")
@@ -255,7 +311,7 @@ def get_message(user_id: int, chat_id: int):
     return res
 
 
-@app.put("/api/reports/{id}")
+# git@app.put("/api/reports/{id}")
 def update_report():
     try:
         pass
