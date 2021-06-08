@@ -352,8 +352,13 @@ def get_chat_name(group_id: str):
 
 
 @app.get("/chat/get_users")
-def get_chat_users():
-    pass
+def get_chat_users(name: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM {name}")
+    res = cursor.fetchall()
+    cursor.close()
+    connect.close()
+    return res, type(res)
 
 
 @app.get("/chat/get_owner")
