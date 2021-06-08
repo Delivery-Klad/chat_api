@@ -49,7 +49,7 @@ class NewPassword(BaseModel):
 class ResetPassword(BaseModel):
     code: str
     login: str
-    password: str
+    password: Optional[str] = None
 
 
 app = FastAPI()
@@ -130,8 +130,21 @@ def recovery_send(login: str):
 @app.post("/recovery/validate")
 def recovery_validate(data: ResetPassword):
     for i in recovery_codes:
-        res = i.split(data.login)
-        print(res)
+        try:
+            res = i.split(data.login)
+            res.pop(0)
+            if data.code == res[0][1:]:
+                if data.password is not None:
+                    connect, cursor = db_connect()
+                    cursor.execute(f"UPDATE users SET password='{data.password}' WHERE email='{data.login}'")
+                    connect.commit()
+                    cursor.close()
+                    connect.close()
+                return True
+        except Exception as e:
+            print(e)
+            return False
+    return False
 
 
 @app.get("/tables/create")
