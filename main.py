@@ -102,6 +102,7 @@ def recovery_send(login: str):
         cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
         email = cursor.fetchall()[0][0]
         code = random.randint(100000, 999999)
+        print(code)
         recovery_codes.append(f"{login}_{code}")
         password = "d8fi2kbfpchos"
         mail_login = "recovery.chat@mail.ru"
