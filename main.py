@@ -103,7 +103,6 @@ def recovery_send(login: str):
         email = cursor.fetchall()[0][0]
         code = random.randint(100000, 999999)
         recovery_codes.append(f"{login}_{code}")
-        print(code)
         password = "d8fi2kbfpchos"
         mail_login = "recovery.chat@mail.ru"
         url = "smtp.mail.ru"
@@ -121,6 +120,7 @@ def recovery_send(login: str):
         except Exception as e:
             print(f'Error {e}')
             return False
+        print(recovery_codes)
         return True
     except Exception as e:
         error_log(e)
@@ -133,6 +133,7 @@ def recovery_validate(data: ResetPassword):
         try:
             res = i.split(data.login)
             res.pop(0)
+            print(f"{data.code} {res[0][1:]}")
             if data.code == res[0][1:]:
                 if data.password is not None:
                     connect, cursor = db_connect()
