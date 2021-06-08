@@ -358,7 +358,7 @@ def get_chat_users(name: str):
     res = cursor.fetchall()
     cursor.close()
     connect.close()
-    return res, type(res)
+    return res
 
 
 @app.get("/chat/get_owner")
