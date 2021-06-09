@@ -11,6 +11,7 @@ import bcrypt
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from rsa.transform import int2bytes, bytes2int
 
 
 class User(BaseModel):
@@ -24,8 +25,8 @@ class Message(BaseModel):
     date: str
     sender: str
     destination: str
-    message: str
-    message1: str
+    message: int
+    message1: int
 
 
 class Invite(BaseModel):
@@ -392,12 +393,14 @@ def chat_kick(invite: Invite):
 
 
 @app.post("/message/send")
-def send_message(message: Message):
+def send_message(message: Message):  # пароль и логин (а надо ли?)
     try:
         connect, cursor = db_connect()
+        msg = int2bytes(message.message)
+        msg1 = int2bytes(message.message1)
         cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{message.sender}','{message.destination}', {psycopg2.Binary(message.message)},"
-                       f"{psycopg2.Binary(message.message1)}, '-', 0)")
+                       f"'{message.sender}','{message.destination}', {psycopg2.Binary(msg)},"
+                       f"{psycopg2.Binary(msg1)}, '-', 0)")
         connect.commit()
         return JSONResponse(status_code=200)
     except Exception as e:
@@ -427,12 +430,12 @@ def get_loop_messages(user_id: int, chat_id: int):
     pass
 
 
-@app.post("/documents/send")
+@app.post("/document/send")
 def send_document():
     pass
 
 
-@app.get("/documents/get")
+@app.get("/document/get")
 def get_document():
     pass
 
