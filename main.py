@@ -65,7 +65,7 @@ def recovery_send(login: str):
         code = random.randint(100000, 999999)
         print(code)
         recovery_codes.append(f"{login}_{code}")
-        password = "d8fi2kbfpchos"
+        password = "12345qweryQ"
         mail_login = "recovery.chat@mail.ru"
         url = "smtp.mail.ru"
         server = smtplib.SMTP_SSL(url, 465)
