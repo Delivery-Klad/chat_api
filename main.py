@@ -395,6 +395,12 @@ def chat_kick(invite: Invite):
 @app.post("/message/send")
 def send_message(message: Message):  # пароль и логин (а надо ли?)
     try:
+        print("alo")
+        print(message.date)
+        print(message.sender)
+        print(message.destination)
+        print(message.message)
+        print(message.message1)
         connect, cursor = db_connect()
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
