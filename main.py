@@ -1,9 +1,7 @@
 import random
-from typing import Optional
 from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from pydantic import BaseModel
 import psycopg2
 import datetime
 import os
@@ -12,45 +10,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
-
-
-class User(BaseModel):
-    login: str
-    password: str
-    pubkey: str
-    email: str
-
-
-class Message(BaseModel):
-    date: str
-    sender: str
-    destination: str
-    message: int
-    message1: int
-
-
-class Invite(BaseModel):
-    name: str
-    user: str
-
-
-class NewPubkey(BaseModel):
-    login: str
-    password: str
-    pubkey: str
-    user_id: str
-
-
-class NewPassword(BaseModel):
-    login: str
-    old_password: str
-    new_password: str
-
-
-class ResetPassword(BaseModel):
-    code: str
-    login: str
-    password: Optional[str] = None
+from Models import *
 
 
 app = FastAPI()
@@ -321,6 +281,31 @@ def create_user(data: NewPassword):
         return JSONResponse(status_code=500)
 
 
+@app.post("/chat/create")
+def create_chat(chat: Group):
+    try:
+        connect, cursor = db_connect()
+        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
+                       "'information_schema', 'pg_catalog') AND table_schema IN('public', 'myschema');")
+        res = cursor.fetchall()
+        if ('{0}'.format(chat.name),) in res:
+            cursor.close()
+            connect.close()
+            return None
+        max_id = get_max_chat_id() + 1
+        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {chat.owner})")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id INTEGER)")
+        connect.commit()
+        cursor.execute(f"INSERT INTO {chat.name} VALUES({chat.owner})")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
+    except Exception as e:
+        error_log(e)
+        return False
+
+
 @app.get("/chat/get_id")
 def get_chat_id(name: str):
     connect, cursor = db_connect()
@@ -395,18 +380,27 @@ def chat_kick(invite: Invite):
 @app.post("/message/send")
 def send_message(message: Message):  # пароль и логин (а надо ли?)
     try:
-        print("alo")
-        print(message.date)
-        print(message.sender)
-        print(message.destination)
-        print(message.message)
-        print(message.message1)
         connect, cursor = db_connect()
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
         cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
                        f"'{message.sender}','{message.destination}', {psycopg2.Binary(msg)},"
                        f"{psycopg2.Binary(msg1)}, '-', 0)")
+        connect.commit()
+        return JSONResponse(status_code=200)
+    except Exception as e:
+        error_log(e)
+        return JSONResponse(status_code=500)
+
+
+@app.post("/message/send/chat")
+def send_chat_message(message: Message):  # пароль и логин (а надо ли?)
+    try:
+        connect, cursor = db_connect()
+        msg = psycopg2.Binary(int2bytes(message.message))
+        cursor.execute(
+            f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'yy-mm-dd hh24:mi:ss'), '{message.sender}',"
+            f"'{message.destination}', {msg}, {msg}, '-', 0)")
         connect.commit()
         return JSONResponse(status_code=200)
     except Exception as e:
@@ -433,6 +427,16 @@ def get_message(user_id: int, chat_id: int):
 
 @app.get("/message/loop")
 def get_loop_messages(user_id: int, chat_id: int):
+    pass
+
+
+@app.get("/file/load")
+def load_file():
+    pass
+
+
+@app.get("/url/shorter")
+def url_shorter():
     pass
 
 
