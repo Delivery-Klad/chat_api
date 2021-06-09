@@ -316,7 +316,6 @@ def get_chat_id(name: str):
     return group_id
 
 
-@app.get("/chat/get_max_id")
 def get_max_chat_id():
     connect, cursor = db_connect()
     cursor.execute("SELECT COUNT(*) FROM chats")

@@ -19,7 +19,7 @@ class Message(BaseModel):
     sender: str
     destination: str
     message: int
-    message1: Optional[str] = None
+    message1: Optional[int] = None
 
 
 class Invite(BaseModel):
