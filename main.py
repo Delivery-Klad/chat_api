@@ -422,7 +422,7 @@ def get_message(user_id: int, chat_id: int):
     # res.sort()
     print(res)
     print(type(res))
-    return res[0]
+    return res
 
 
 @app.get("/message/loop")
