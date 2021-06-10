@@ -433,7 +433,8 @@ def get_message(user_id: int, chat_id: int):
         json_dict.update({"date": i[0], "from_id": i[1], "to_id": i[2], "message": bytes2int(i[3]),
                           "message1": bytes2int(i[4]), "file": i[5], "read": i[6]})
     print("success")
-    return res
+    
+    return json_dict
 
 
 @app.get("/message/loop")
