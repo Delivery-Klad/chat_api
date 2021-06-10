@@ -420,10 +420,11 @@ def get_message(user_id: int, chat_id: int):
     res.sort()
     json_dict = {}
     for i in range(len(res)):
-        json_dict.update({f"message_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
-                                           "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
-                                           "file": res[i][5], "read": res[i][6]}})
-    return json_dict
+        json_dict.update({f"message": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
+                                       "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
+                                       "file": res[i][5], "read": res[i][6]}})
+    res = [json_dict]
+    return res
 
 
 @app.get("/message/loop")
