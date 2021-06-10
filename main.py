@@ -450,7 +450,7 @@ def upload_file():
 def url_shorter(url: str):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
-    max_id = cursor.fetchall()
+    max_id = cursor.fetchall()[0]
     print(max_id)
     print(url)
     # cursor.execute(f"INSERT INTO links VALUES({max_id}, {url})")
