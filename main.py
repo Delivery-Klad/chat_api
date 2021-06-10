@@ -429,9 +429,10 @@ def get_loop_messages(user_id: int, chat_id: int):
     pass
 
 
-@app.get("/file/load")
-def load_file():
-    pass
+@app.post("/file/upload")
+def upload_file():
+    with open("files/filename.file", "wb") as file:
+        file.write("ff".encode('utf-8'))
 
 
 @app.get("/url/shorter")
