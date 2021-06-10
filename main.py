@@ -407,14 +407,15 @@ def send_chat_message(message: Message):  # пароль и логин (а на�
 
 
 @app.get("/message/get")  # нельзя вернуть массив, переделать на json
-def get_message(user_id: int, chat_id: int):
+def get_message(user_id: int, chat_id: int, is_chat: int):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
                    "ORDER BY date")
     res = cursor.fetchall()
-    cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
-                   "ORDER BY date")
-    res += cursor.fetchall()
+    if is_chat == 0:
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
+                       "ORDER BY date")
+        res += cursor.fetchall()
     cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     connect.commit()
     res.sort()
@@ -423,8 +424,7 @@ def get_message(user_id: int, chat_id: int):
         json_dict.update({f"item_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
                                         "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
                                         "file": res[i][5], "read": res[i][6]}})
-    res = [json_dict]
-    return res
+    return json_dict
 
 
 @app.get("/message/loop")
