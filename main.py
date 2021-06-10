@@ -12,7 +12,6 @@ from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
 from Models import *
 
-
 app = FastAPI()
 recovery_codes = []
 secret = "root"
@@ -419,17 +418,11 @@ def get_message(user_id: int, chat_id: int):
     cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     connect.commit()
     res.sort()
-    print(res)
-    print(type(res))
     json_dict = {}
-    try:
-        for i in range(len(res)):
-            json_dict.update({f"message_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
-                                               "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
-                                               "file": res[i][5], "read": res[i][6]}})
-    except IndexError:
-        print("IndexError")
-    print(json_dict)
+    for i in range(len(res)):
+        json_dict.update({f"message_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
+                                           "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
+                                           "file": res[i][5], "read": res[i][6]}})
     return json_dict
 
 
@@ -457,4 +450,3 @@ def send_document():
 @app.get("/document/get")
 def get_document():
     pass
-
