@@ -422,11 +422,13 @@ def get_message(user_id: int, chat_id: int):
     print(res)
     print(type(res))
     json_dict = {}
-    for i in res:
-        print(i)
-        json_dict.update({"date": i[0], "from_id": i[1], "to_id": i[2], "message": i[3],
-                          "message1": i[4], "file": i[5], "read": i[6]})
-    print("success")
+    try:
+        for i in range(len(res)):
+            json_dict.update({f"message_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
+                                               "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
+                                               "file": res[i][5], "read": res[i][6]}})
+    except IndexError:
+        print("IndexError")
     print(json_dict)
     return json_dict
 
