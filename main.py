@@ -452,6 +452,7 @@ def url_shorter(url: str):
     cursor.execute("SELECT count(id) FROM links")
     max_id = cursor.fetchall()
     print(max_id)
+    print(url)
     # cursor.execute(f"INSERT INTO links VALUES({max_id}, {url})")
     cursor.close()
     connect.close()
