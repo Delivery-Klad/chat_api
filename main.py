@@ -129,6 +129,8 @@ def create_tables(key: str):
                            'message1 BYTEA,'
                            'file TEXT,'
                            'read INTEGER)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS links(id INTEGER,'
+                           'longlink TEXT)')
         connect.commit()
         cursor.close()
         connect.close()
@@ -385,6 +387,8 @@ def send_message(message: Message):  # пароль и логин (а надо �
                        f"'{message.sender}','{message.destination}', {psycopg2.Binary(msg)},"
                        f"{psycopg2.Binary(msg1)}, '-', 0)")
         connect.commit()
+        cursor.close()
+        connect.close()
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
@@ -400,6 +404,8 @@ def send_chat_message(message: Message):  # пароль и логин (а на�
             f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'yy-mm-dd hh24:mi:ss'), '{message.sender}',"
             f"'{message.destination}', {msg}, {msg}, '-', 0)")
         connect.commit()
+        cursor.close()
+        connect.close()
         return JSONResponse(status_code=200)
     except Exception as e:
         error_log(e)
@@ -424,6 +430,8 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
         json_dict.update({f"item_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
                                         "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
                                         "file": res[i][5], "read": res[i][6]}})
+    cursor.close()
+    connect.close()
     return json_dict
 
 
@@ -439,8 +447,14 @@ def upload_file():
 
 
 @app.get("/url/shorter")
-def url_shorter():
-    pass
+def url_shorter(url: str):
+    connect, cursor = db_connect()
+    cursor.execute("SELECT count(id) FROM links")
+    max_id = cursor.fetchall()
+    print(max_id)
+    # cursor.execute(f"INSERT INTO links VALUES({max_id}, {url})")
+    cursor.close()
+    connect.close()
 
 
 @app.post("/document/send")
