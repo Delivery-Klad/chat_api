@@ -412,8 +412,8 @@ def get_message(user_id: int, chat_id: int):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
                    "ORDER BY date")
-    res = cursor.fetchone()
-    # res = cursor.fetchall()
+    # res = cursor.fetchone()
+    res = cursor.fetchall()
     """cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
                    "ORDER BY date")
     res += cursor.fetchall()
@@ -422,6 +422,17 @@ def get_message(user_id: int, chat_id: int):
     # res.sort()
     print(res)
     print(type(res))
+    cursor.execute('CREATE TABLE IF NOT EXISTS messages(date TIMESTAMP,'
+                   'from_id TEXT,'
+                   'to_id TEXT,'
+                   'message BYTEA,'
+                   'message1 BYTEA,'
+                   'file TEXT,'
+                   'read INTEGER)')
+    json_dict = {}
+    for i in res:
+        json_dict.update({"date": i[0], "from_id": i[1], "to_id": i[2], "message": i[3],
+                          "message1": i[4], "file": i[5], "read": i[6]})
     return res
 
 
