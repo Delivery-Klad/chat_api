@@ -54,6 +54,11 @@ async def http_exception_handler(request, exc):
         """
 
 
+@app.get("/api/awake")
+def api_awake():
+    print("awake")
+
+
 @app.post("/recovery/send")
 def recovery_send(login: str):
     connect, cursor = db_connect()
@@ -436,8 +441,21 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
 
 
 @app.get("/message/loop")
-def get_loop_messages(user_id: int, chat_id: int):
-    pass
+def get_loop_messages(user_id: int):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
+    res = cursor.fetchall()
+    new_msgs = []
+    temp = ''
+    for i in res:
+        if i[0] not in new_msgs:
+            new_msgs.append(i[0])
+    for i in new_msgs:
+        temp += i + ', '
+    if temp != '':
+        return temp[:-2]
+    else:
+        return None
 
 
 @app.post("/file/upload")
@@ -450,12 +468,13 @@ def upload_file():
 def url_shorter(url: str):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
-    max_id = cursor.fetchall()[0]
+    max_id = cursor.fetchall()[0][0]
     print(max_id)
-    print(url)
-    # cursor.execute(f"INSERT INTO links VALUES({max_id}, {url})")
+    # cursor.execute(f"INSERT INTO links VALUES({max_id + 1}, {url})")
+    connect.commit()
     cursor.close()
     connect.close()
+    return f"doc_{max_id}"
 
 
 @app.post("/document/send")
