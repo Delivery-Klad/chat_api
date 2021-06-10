@@ -413,12 +413,12 @@ def get_message(user_id: int, chat_id: int):
     cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
                    "ORDER BY date")
     res = cursor.fetchall()
-    """cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
+    cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
                    "ORDER BY date")
     res += cursor.fetchall()
     cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
-    connect.commit()"""
-    # res.sort()
+    connect.commit()
+    res.sort()
     print(res)
     print(type(res))
     cursor.execute('CREATE TABLE IF NOT EXISTS messages(date TIMESTAMP,'
@@ -430,10 +430,10 @@ def get_message(user_id: int, chat_id: int):
                    'read INTEGER)')
     json_dict = {}
     for i in res:
-        json_dict.update({"date": i[0], "from_id": i[1], "to_id": i[2], "message": bytes2int(i[3]),
-                          "message1": bytes2int(i[4]), "file": i[5], "read": i[6]})
+        json_dict.update({"date": i[0], "from_id": i[1], "to_id": i[2], "message": i[3],
+                          "message1": i[4], "file": i[5], "read": i[6]})
     print("success")
-    
+    print(json_dict)
     return json_dict
 
 
