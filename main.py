@@ -57,7 +57,9 @@ async def http_exception_handler(request, exc):
 @app.get("/api/awake")
 def api_awake(request: Request):
     print("awake")
-    return request
+    print(request.user)
+    print(request)
+    return "Aboba"
 
 
 @app.post("/recovery/send")
