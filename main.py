@@ -1,7 +1,6 @@
 import random
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
 import psycopg2
 import datetime
 import os
@@ -36,28 +35,11 @@ def error_log(error):  # просто затычка, будет дописан�
         print("Возникла ошибка при обработке errorLog (Это вообще как?)")
 
 
-"""
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request, exc):
-    print(exc.detail)
-    if "Not authenticated" in str(exc.detail):
-        return PlainTextResponse(str(exc.detail), status_code=401)
-    else:
-        return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
-"""
-
-"""
-        try:
-            pass
-        except IndexError:
-            return JSONResponse(status_code=403)
-        """
-
-
 @app.get("/api/awake")
 def api_awake(request: Request):
     print("awake")
-    print(request)
+    print(request.client.host)
+    print(request.client)
     return "Aboba"
 
 
