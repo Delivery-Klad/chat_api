@@ -1,5 +1,5 @@
 import random
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import psycopg2
@@ -55,8 +55,9 @@ async def http_exception_handler(request, exc):
 
 
 @app.get("/api/awake")
-def api_awake():
+def api_awake(request: Request):
     print("awake")
+    return request
 
 
 @app.post("/recovery/send")
