@@ -352,7 +352,7 @@ def get_chat_owner(group_id: str):
 def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
-    cursor.execute(f"SELECT login FROM users WHERE login='{cursor.fetchall()[0][0]}'")
+    cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
     owner = cursor.fetchall()[0][0]
     if owner == user:
         cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
@@ -367,7 +367,7 @@ def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
 def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
-    cursor.execute(f"SELECT login FROM users WHERE login='{cursor.fetchall()[0][0]}'")
+    cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
     owner = cursor.fetchall()[0][0]
     if owner == user:
         cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
