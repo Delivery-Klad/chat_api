@@ -9,8 +9,9 @@ from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
 from Models import *
 from Auth import AuthHandler
+from Schema import *
 
-app = FastAPI()
+app = FastAPI(openapi_tags=tags_metadata)
 auth_handler = AuthHandler()
 recovery_codes = []
 secret = "root"
@@ -35,14 +36,14 @@ def error_log(error):  # просто затычка, будет дописан�
         print("Возникла ошибка при обработке errorLog (Это вообще как?)")
 
 
-@app.get("/api/awake")
+@app.head("/api/awake", tags=["API"])
 def api_awake(request: Request):
     print("awake")
     print(request.client.host)
     return True
 
 
-@app.post("/recovery/send")
+@app.post("/recovery/send", tags=["API"])
 def recovery_send(login: str):
     connect, cursor = db_connect()
     try:
@@ -76,7 +77,7 @@ def recovery_send(login: str):
         return None
 
 
-@app.post("/recovery/validate")
+@app.post("/recovery/validate", tags=["API"])
 def recovery_validate(data: ResetPassword):
     for i in recovery_codes:
         try:
@@ -97,7 +98,7 @@ def recovery_validate(data: ResetPassword):
     return False
 
 
-@app.get("/tables/create")
+@app.get("/tables/create", tags=["API"])
 def create_tables(key: str):
     connect, cursor = db_connect()
     try:
@@ -127,7 +128,7 @@ def create_tables(key: str):
         error_log(e)
 
 
-@app.get("/tables/check")
+@app.get("/tables/check", tags=["API"])
 def check_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
@@ -139,7 +140,7 @@ def check_tables(key: str, table: str):
         error_log(e)
 
 
-@app.delete("/tables/drop")
+@app.delete("/tables/drop", tags=["API"])
 def create_tables(key: str):
     connect, cursor = db_connect()
     try:
@@ -155,7 +156,7 @@ def create_tables(key: str):
         error_log(e)
 
 
-@app.post("/auth")
+@app.post("/auth", tags=["Users"])
 def auth(data: Auth):
     try:
         connect, cursor = db_connect()
@@ -171,7 +172,7 @@ def auth(data: Auth):
         error_log(e)
 
 
-@app.get("/user/can_use_login")
+@app.get("/user/can_use_login", tags=["Users"])
 def can_use_login(login: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
@@ -182,14 +183,14 @@ def can_use_login(login: str):
     return False
 
 
-@app.get("/user/get_id")
+@app.get("/user/get_id", tags=["Users"])
 def get_id(login: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     return cursor.fetchall()[0][0]
 
 
-@app.get("/user/get_nickname")
+@app.get("/user/get_nickname", tags=["Users"])
 def get_nickname(id: int):
     try:
         connect, cursor = db_connect()
@@ -199,14 +200,14 @@ def get_nickname(id: int):
         return None
 
 
-@app.get("/user/get_pubkey")
+@app.get("/user/get_pubkey", tags=["Users"])
 def get_pubkey(id: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
     return cursor.fetchall()[0][0]
 
 
-@app.get("/user/get_groups")
+@app.get("/user/get_groups", tags=["Users"])
 def get_groups(user_id: int):
     connect, cursor = db_connect()
     groups = []
@@ -220,7 +221,7 @@ def get_groups(user_id: int):
     return groups
 
 
-@app.post("/user/create")
+@app.post("/user/create", tags=["Users"])
 def create_user(user: User):
     try:
         connect, cursor = db_connect()
@@ -239,7 +240,7 @@ def create_user(user: User):
         return JSONResponse(status_code=500)
 
 
-@app.put("/user/update_pubkey")
+@app.put("/user/update_pubkey", tags=["Users"])
 def create_user(pubkey: NewPubkey, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     try:
@@ -253,7 +254,7 @@ def create_user(pubkey: NewPubkey, login=Depends(auth_handler.auth_wrapper)):
         return False
 
 
-@app.put("/user/update_password")
+@app.put("/user/update_password", tags=["Users"])
 def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     try:
@@ -275,7 +276,7 @@ def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
         return JSONResponse(status_code=500)
 
 
-@app.post("/chat/create")
+@app.post("/chat/create", tags=["Users"])
 def create_chat(chat: Group):
     try:
         connect, cursor = db_connect()
@@ -300,7 +301,7 @@ def create_chat(chat: Group):
         return False
 
 
-@app.get("/chat/get_id")
+@app.get("/chat/get_id", tags=["Chats"])
 def get_chat_id(name: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
@@ -320,7 +321,7 @@ def get_max_chat_id():
     return int(str(res)[1:])
 
 
-@app.get("/chat/get_name")
+@app.get("/chat/get_name", tags=["Chats"])
 def get_chat_name(group_id: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
@@ -330,7 +331,7 @@ def get_chat_name(group_id: str):
     return name
 
 
-@app.get("/chat/get_users")
+@app.get("/chat/get_users", tags=["Chats"])
 def get_chat_users(name: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM {name}")
@@ -340,7 +341,7 @@ def get_chat_users(name: str):
     return res
 
 
-@app.get("/chat/get_owner")
+@app.get("/chat/get_owner", tags=["Chats"])
 def get_chat_owner(group_id: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE id='{group_id}'")
@@ -350,7 +351,7 @@ def get_chat_owner(group_id: str):
     return res
 
 
-@app.post("/chat/invite")  # пароль и логин
+@app.post("/chat/invite", tags=["Chats"])  # пароль и логин
 def chat_invite(invite: Invite):
     connect, cursor = db_connect()
     cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
@@ -360,7 +361,7 @@ def chat_invite(invite: Invite):
     return JSONResponse(status_code=200)
 
 
-@app.post("/chat/kick")  # пароль и логин
+@app.post("/chat/kick", tags=["Chats"])  # пароль и логин
 def chat_kick(invite: Invite):
     connect, cursor = db_connect()
     cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
@@ -370,7 +371,7 @@ def chat_kick(invite: Invite):
     return JSONResponse(status_code=200)
 
 
-@app.post("/message/send")
+@app.post("/message/send", tags=["Messages"])
 def send_message(message: Message):  # пароль и логин (а надо ли?)
     try:
         connect, cursor = db_connect()
@@ -388,7 +389,7 @@ def send_message(message: Message):  # пароль и логин (а надо �
         return JSONResponse(status_code=500)
 
 
-@app.post("/message/send/chat")
+@app.post("/message/send/chat", tags=["Messages"])
 def send_chat_message(message: Message):  # пароль и логин (а надо ли?)
     try:
         connect, cursor = db_connect()
@@ -405,7 +406,7 @@ def send_chat_message(message: Message):  # пароль и логин (а на�
         return JSONResponse(status_code=500)
 
 
-@app.get("/message/get")  # нельзя вернуть массив, переделать на json
+@app.get("/message/get", tags=["Messages"])
 def get_message(user_id: int, chat_id: int, is_chat: int):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
@@ -428,7 +429,7 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
     return json_dict
 
 
-@app.get("/message/loop")
+@app.get("/message/loop", tags=["Messages"])
 def get_loop_messages(user_id: int):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
@@ -446,13 +447,13 @@ def get_loop_messages(user_id: int):
         return None
 
 
-@app.post("/file/upload")
+@app.post("/file/upload", tags=["Files"])
 def upload_file():
     with open("files/filename.file", "wb") as file:
         file.write("ff".encode('utf-8'))
 
 
-@app.get("/url/shorter")
+@app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
@@ -466,11 +467,11 @@ def url_shorter(url: str):
     return f"doc_{max_id}"
 
 
-@app.post("/document/send")
+@app.post("/document/send", tags=["Files"])
 def send_document():
     pass
 
 
-@app.get("/document/get")
+@app.get("/document/get", tags=["Files"])
 def get_document():
     pass
