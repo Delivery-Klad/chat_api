@@ -1,17 +1,17 @@
 import random
-from fastapi import FastAPI, Depends, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi import FastAPI, Request, Depends
+from fastapi.responses import JSONResponse
 import psycopg2
-import datetime
-import os
 import bcrypt
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
 from Models import *
+from Auth import AuthHandler
 
 app = FastAPI()
+auth_handler = AuthHandler()
 recovery_codes = []
 secret = "root"
 
@@ -39,8 +39,7 @@ def error_log(error):  # просто затычка, будет дописан�
 def api_awake(request: Request):
     print("awake")
     print(request.client.host)
-    print(request.client)
-    return "Aboba"
+    return True
 
 
 @app.post("/recovery/send")
@@ -161,7 +160,11 @@ def auth(login: str, password: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
-        return bcrypt.checkpw(password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
+        if bcrypt.checkpw(password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
+            token = auth_handler.encode_token(login)
+            return token
+        else:
+            return False
     except IndexError:
         return None
     except Exception as e:
@@ -408,8 +411,8 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
                    "ORDER BY date")
     res = cursor.fetchall()
     if is_chat == 0:
-        cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE 'g%' "
-                       "ORDER BY date")
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
+                       f"'g%' ORDER BY date")
         res += cursor.fetchall()
     cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     connect.commit()
@@ -454,6 +457,7 @@ def url_shorter(url: str):
     cursor.execute("SELECT count(id) FROM links")
     max_id = cursor.fetchall()[0][0]
     print(max_id)
+    print(url)
     # cursor.execute(f"INSERT INTO links VALUES({max_id + 1}, {url})")
     connect.commit()
     cursor.close()
