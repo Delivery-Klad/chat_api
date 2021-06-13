@@ -171,6 +171,11 @@ def auth(login: str, password: str):
         error_log(e)
 
 
+@app.get('/protected')
+def protected(username=Depends(auth_handler.auth_wrapper)):
+    return { 'name': username }
+
+
 @app.get("/user/can_use_login")
 def can_use_login(login: str):
     connect, cursor = db_connect()
