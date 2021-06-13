@@ -8,7 +8,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
 from Models import *
-from Auth import AuthHandler
 
 app = FastAPI()
 auth_handler = AuthHandler()
