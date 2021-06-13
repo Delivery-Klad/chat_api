@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
 from Models import *
+from Auth import AuthHandler
 
 app = FastAPI()
 auth_handler = AuthHandler()
@@ -256,12 +257,16 @@ def create_user(pubkey: NewPubkey):
 
 
 @app.put("/user/update_password")
-def create_user(data: NewPassword):
+def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     try:
-        res = auth(data.login, data.old_password)
+        try:
+            cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
+            res = bcrypt.checkpw(data.old_password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
+        except IndexError:
+            res = None
         if res:
-            cursor.execute(f"UPDATE users SET password='{data.new_password}' WHERE login='{data.login}'")
+            cursor.execute(f"UPDATE users SET password='{data.new_password}' WHERE login='{login}'")
             connect.commit()
             return True
         elif res is None:

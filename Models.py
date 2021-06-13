@@ -1,10 +1,5 @@
-from fastapi import Depends
 from pydantic import BaseModel
 from typing import Optional
-from Auth import AuthHandler
-
-
-auth_handler = AuthHandler()
 
 
 class User(BaseModel):
@@ -40,7 +35,6 @@ class NewPubkey(BaseModel):
 
 
 class NewPassword(BaseModel):
-    login: Depends(auth_handler.auth_wrapper())
     old_password: str
     new_password: str
 
