@@ -277,7 +277,7 @@ def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/chat/create", tags=["Users"])
-def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper())):
+def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper)):
     try:
         connect, cursor = db_connect()
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
@@ -349,7 +349,7 @@ def get_chat_owner(group_id: str):
 
 
 @app.post("/chat/invite", tags=["Chats"])
-def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper())):
+def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE login='{cursor.fetchall()[0][0]}'")
@@ -364,7 +364,7 @@ def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper())):
 
 
 @app.post("/chat/kick", tags=["Chats"])
-def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper())):
+def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE login='{cursor.fetchall()[0][0]}'")
