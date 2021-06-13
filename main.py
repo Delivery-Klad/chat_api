@@ -291,7 +291,8 @@ def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper)):
         res = cursor.fetchall()[0]
         res = str(res).split(',', 1)[0]
         max_id = int(str(res)[1:]) + 1
-        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner})")
+        cursor.execute(f"SELECT id FROM users WHERE login={owner}")
+        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {cursor.fetchall()[0][0]})")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id INTEGER)")
         connect.commit()
         cursor.execute(f"INSERT INTO {chat.name} VALUES({owner})")
@@ -354,8 +355,6 @@ def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
     owner = cursor.fetchall()[0][0]
-    print(f"{owner} {type(owner)}")
-    print(f"{user} {type(owner)}")
     if owner == user:
         cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
         connect.commit()
