@@ -16,7 +16,6 @@ class User(BaseModel):
 
 class Group(BaseModel):
     name: str
-    owner: str
 
 
 class Message(BaseModel):

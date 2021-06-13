@@ -277,7 +277,7 @@ def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/chat/create", tags=["Users"])
-def create_chat(chat: Group):
+def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper())):
     try:
         connect, cursor = db_connect()
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
@@ -287,11 +287,14 @@ def create_chat(chat: Group):
             cursor.close()
             connect.close()
             return None
-        max_id = get_max_chat_id() + 1
-        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {chat.owner})")
+        cursor.execute("SELECT COUNT(*) FROM chats")
+        res = cursor.fetchall()[0]
+        res = str(res).split(',', 1)[0]
+        max_id = int(str(res)[1:]) + 1
+        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner})")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id INTEGER)")
         connect.commit()
-        cursor.execute(f"INSERT INTO {chat.name} VALUES({chat.owner})")
+        cursor.execute(f"INSERT INTO {chat.name} VALUES({owner})")
         connect.commit()
         cursor.close()
         connect.close()
@@ -311,16 +314,6 @@ def get_chat_id(name: str):
     return group_id
 
 
-def get_max_chat_id():
-    connect, cursor = db_connect()
-    cursor.execute("SELECT COUNT(*) FROM chats")
-    res = cursor.fetchall()[0]
-    res = str(res).split(',', 1)[0]
-    cursor.close()
-    connect.close()
-    return int(str(res)[1:])
-
-
 @app.get("/chat/get_name", tags=["Chats"])
 def get_chat_name(group_id: str):
     connect, cursor = db_connect()
@@ -333,6 +326,10 @@ def get_chat_name(group_id: str):
 
 @app.get("/chat/get_users", tags=["Chats"])
 def get_chat_users(name: str):
+    """
+    сдалать авторизацию и сделать другой метод для проверки есть ли
+    пользователь в определенной группе
+    """
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM {name}")
     res = cursor.fetchall()
@@ -341,7 +338,7 @@ def get_chat_users(name: str):
     return res
 
 
-@app.get("/chat/get_owner", tags=["Chats"])
+@app.get("/chat/get_owner", tags=["Chats"])  # переписать на is_chat_owner
 def get_chat_owner(group_id: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE id='{group_id}'")
@@ -351,24 +348,34 @@ def get_chat_owner(group_id: str):
     return res
 
 
-@app.post("/chat/invite", tags=["Chats"])  # пароль и логин
-def chat_invite(invite: Invite):
+@app.post("/chat/invite", tags=["Chats"])
+def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper())):
     connect, cursor = db_connect()
-    cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
-    connect.commit()
-    cursor.close()
-    connect.close()
-    return JSONResponse(status_code=200)
+    cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
+    cursor.execute(f"SELECT login FROM users WHERE login='{cursor.fetchall()[0][0]}'")
+    owner = cursor.fetchall()[0][0]
+    if owner == user:
+        cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
+    return False
 
 
-@app.post("/chat/kick", tags=["Chats"])  # пароль и логин
-def chat_kick(invite: Invite):
+@app.post("/chat/kick", tags=["Chats"])
+def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper())):
     connect, cursor = db_connect()
-    cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
-    connect.commit()
-    cursor.close()
-    connect.close()
-    return JSONResponse(status_code=200)
+    cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
+    cursor.execute(f"SELECT login FROM users WHERE login='{cursor.fetchall()[0][0]}'")
+    owner = cursor.fetchall()[0][0]
+    if owner == user:
+        cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
+    return False
 
 
 @app.post("/message/send", tags=["Messages"])
