@@ -354,6 +354,8 @@ def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
     owner = cursor.fetchall()[0][0]
+    print(f"{owner} {type(owner)}")
+    print(f"{user} {type(owner)}")
     if owner == user:
         cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
         connect.commit()
