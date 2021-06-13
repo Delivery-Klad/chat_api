@@ -155,13 +155,13 @@ def create_tables(key: str):
         error_log(e)
 
 
-@app.get("/auth")
-def auth(login: str, password: str):
+@app.post("/auth")
+def auth(data: Auth):
     try:
         connect, cursor = db_connect()
-        cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
-        if bcrypt.checkpw(password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
-            token = auth_handler.encode_token(login)
+        cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
+        if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
+            token = auth_handler.encode_token(data.login)
             return token
         else:
             return False
@@ -240,20 +240,17 @@ def create_user(user: User):
 
 
 @app.put("/user/update_pubkey")
-def create_user(pubkey: NewPubkey):
+def create_user(pubkey: NewPubkey, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     try:
-        res = auth(pubkey.login, pubkey.password)
-        if res:
-            cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE id={pubkey.user_id}")
-            connect.commit()
-            cursor.close()
-            connect.close()
-            return True
-        return False
+        cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login={login}")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
     except Exception as e:
         error_log(e)
-        return JSONResponse(status_code=500)
+        return False
 
 
 @app.put("/user/update_password")

@@ -2,6 +2,11 @@ from pydantic import BaseModel
 from typing import Optional
 
 
+class Auth(BaseModel):
+    login: str
+    password: str
+
+
 class User(BaseModel):
     login: str
     password: str
@@ -28,10 +33,7 @@ class Invite(BaseModel):
 
 
 class NewPubkey(BaseModel):
-    login: str
-    password: str
     pubkey: str
-    user_id: str
 
 
 class NewPassword(BaseModel):
