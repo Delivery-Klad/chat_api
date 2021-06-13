@@ -291,7 +291,7 @@ def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper)):
         res = cursor.fetchall()[0]
         res = str(res).split(',', 1)[0]
         max_id = int(str(res)[1:]) + 1
-        cursor.execute(f"SELECT id FROM users WHERE login={owner}")
+        cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {cursor.fetchall()[0][0]})")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id INTEGER)")
         connect.commit()
