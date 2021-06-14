@@ -455,9 +455,10 @@ def get_loop_messages(user_id: int):
 
 @app.post("/file/upload", tags=["Files"])
 async def upload_file(file: UploadFile = File(...)):
-    print(file)
-    """with open("files/filename.file", "wb") as file:
-            file.write("ff".encode('utf-8'))"""
+    with open(file.filename, "wb") as out_file:
+        content = await file.read()
+        out_file.write(content)
+    print("success")
     return "Aboba"
 
 
