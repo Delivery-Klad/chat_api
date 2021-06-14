@@ -3,7 +3,7 @@ import rsa
 import random
 import yadisk
 from fastapi import FastAPI, Request, Depends, File, UploadFile
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 import psycopg2
 import bcrypt
 import smtplib
@@ -474,21 +474,7 @@ async def get_file(id):
         res = None
     cursor.close()
     connect.close()
-    html = """<html>
-  <head></head>
-  <script type="text/JavaScript">
-    function doRedirect() {
-        atTime = "0";
-        toUrl = "
-    """ + res + """";
-        setTimeout("location.href = toUrl;", atTime);
-    }
-  </script>
-  <body onload="doRedirect();"></body>
-</html>
-    """
-    
-    return HTMLResponse(content=html, status_code=200)
+    return RedirectResponse(url=res)
 
 
 @app.post("/file/upload", tags=["Files"])
