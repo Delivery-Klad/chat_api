@@ -468,34 +468,31 @@ def get_loop_messages(login=Depends(auth_handler.auth_wrapper)):
 async def get_file(id):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT longlink FROM links WHERE id={id}")
-    res = cursor.fetchall()[0][0]
+    try:
+        res = cursor.fetchall()[0][0]
+    except IndexError:
+        res = None
     cursor.close()
     connect.close()
     return res
 
 
 @app.post("/file/upload", tags=["Files"])
-async def upload_file(destination: str, file: UploadFile = File(...), login=Depends(auth_handler.auth_wrapper)):
+async def upload_file(file: UploadFile = File(...)):
     with open(file.filename, "wb") as out_file:
         content = await file.read()
         out_file.write(content)
-    print(1)
     try:
         y.upload(file.filename, '/' + file.filename)
-        print(2)
     except Exception:
         pass
-    print(3)
     link = y.get_download_link('/' + file.filename)
-    print(4)
     os.remove(file.filename)
-    print(5)
-    link = url_shorter(link, destination, login)
     return link
 
 
 @app.get("/url/shorter", tags=["Files"])
-def url_shorter(url: str, destination: str, login: str):
+def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
     max_id = int(cursor.fetchall()[0][0]) + 1
