@@ -1,5 +1,5 @@
 import random
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 import psycopg2
 import bcrypt
@@ -454,9 +454,11 @@ def get_loop_messages(user_id: int):
 
 
 @app.post("/file/upload", tags=["Files"])
-def upload_file():
-    with open("files/filename.file", "wb") as file:
-        file.write("ff".encode('utf-8'))
+async def upload_file(file: UploadFile = File(...)):
+    print(file)
+    return "Aboba"
+    """with open("files/filename.file", "wb") as file:
+        file.write("ff".encode('utf-8'))"""
 
 
 @app.get("/url/shorter", tags=["Files"])
