@@ -1,4 +1,7 @@
+import os
 import random
+import shutil
+
 import yadisk
 from fastapi import FastAPI, Request, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
@@ -466,7 +469,12 @@ async def upload_file(file: UploadFile = File(...)):
     with open(file.filename, "wb") as out_file:
         content = await file.read()
         out_file.write(content)
-    print("success")
+    path = os.path.abspath(file.filename)
+    print(path)
+    path = path.split('/')
+    print(path)
+    path = path[len(path) - 1]
+    print(path)
     return "Aboba"
 
 
