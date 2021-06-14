@@ -456,10 +456,10 @@ def get_loop_messages(user_id: int):
 @app.post("/file/upload", tags=["Files"])
 async def upload_file(file: UploadFile = File(...)):
     print(file)
-    return "Aboba"
     """with open("files/filename.file", "wb") as file:
-        file.write("ff".encode('utf-8'))"""
-
+            file.write("ff".encode('utf-8'))"""
+    return "Aboba"
+    
 
 @app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str):
