@@ -407,7 +407,7 @@ def send_chat_message(message: Message):  # пароль и логин
 
 
 @app.get("/message/get", tags=["Messages"])  # токен
-def get_message(user_id: int, chat_id: int, is_chat: int):
+def get_message(user_id: int, chat_id: str, is_chat: int):
     connect, cursor = db_connect()
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
@@ -425,7 +425,6 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
                        format(user_id, chat_id))
     connect.commit()
     res.sort()
-    print(res)
     json_dict = {}
     for i in range(len(res)):
         json_dict.update({f"item_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
@@ -433,7 +432,6 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
                                         "file": res[i][5], "read": res[i][6]}})
     cursor.close()
     connect.close()
-    print(json_dict)
     return json_dict
 
 
