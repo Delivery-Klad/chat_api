@@ -377,7 +377,7 @@ def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
 def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
     try:
         connect, cursor = db_connect()
-        cursor.execute(f"SELECT id FROM users WHERE login={login}")
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
         sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
@@ -413,7 +413,7 @@ def send_chat_message(message: Message):
 @app.get("/message/get", tags=["Messages"])
 def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login={login}")
+    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
@@ -444,7 +444,7 @@ def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrap
 @app.get("/message/loop", tags=["Messages"])
 def get_loop_messages(login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login={login}")
+    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
     cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
     res = cursor.fetchall()
