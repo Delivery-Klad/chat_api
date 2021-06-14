@@ -425,6 +425,7 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
                        format(user_id, chat_id))
     connect.commit()
     res.sort()
+    print(res)
     json_dict = {}
     for i in range(len(res)):
         json_dict.update({f"item_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
@@ -432,6 +433,7 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
                                         "file": res[i][5], "read": res[i][6]}})
     cursor.close()
     connect.close()
+    print(json_dict)
     return json_dict
 
 
