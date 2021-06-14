@@ -1,13 +1,13 @@
 import os
+import rsa
 import random
-import shutil
-
 import yadisk
 from fastapi import FastAPI, Request, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 import psycopg2
 import bcrypt
 import smtplib
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
@@ -475,7 +475,7 @@ async def get_file(id):
 
 
 @app.post("/file/upload", tags=["Files"])
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(destination: str, file: UploadFile = File(...), login=Depends(auth_handler.auth_wrapper)):
     with open(file.filename, "wb") as out_file:
         content = await file.read()
         out_file.write(content)
@@ -485,27 +485,40 @@ async def upload_file(file: UploadFile = File(...)):
         pass
     link = y.get_download_link('/' + file.filename)
     os.remove(file.filename)
-    print(link)
-    return url_shorter(link)
+    link = url_shorter(link, destination, login)
+    return link
 
 
 @app.get("/url/shorter", tags=["Files"])
-def url_shorter(url: str):
+def url_shorter(url: str, destination: str, login: str):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
     max_id = int(cursor.fetchall()[0][0]) + 1
     cursor.execute(f"INSERT INTO links VALUES({max_id}, '{url}')")
+    link = f"chat-b4ckend.herokuapp.com/file/get/file_{max_id}"
+    date = datetime.utcnow().strftime('%d/%m/%y %H:%M:%S')
+    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+    user_id = cursor.fetchall()[0][0]
+    cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
+    res = cursor.fetchall()[0][0]
+    encrypt_link = encrypt(link.encode('utf-8'), res)
+    cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
+    res = cursor.fetchall()[0][0]
+    encrypt_link1 = encrypt(link.encode('utf-8'), res)
+    cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
+                   f"'{user_id}','{destination}', {psycopg2.Binary(encrypt_link)},"
+                   f"{psycopg2.Binary(encrypt_link1)}, '-', 0)")
     connect.commit()
     cursor.close()
     connect.close()
-    return f"file_{max_id}"
+    return True
 
 
-@app.post("/document/send", tags=["Files"])
-def send_document():  # token
-    pass
-
-
-@app.get("/document/get", tags=["Files"])
-def get_document():  # token
-    pass
+def encrypt(msg: bytes, pubkey):
+    try:
+        pubkey = pubkey.split(', ')
+        pubkey = rsa.PublicKey(int(pubkey[0]), int(pubkey[1]))
+        encrypt_message = rsa.encrypt(msg, pubkey)
+        return bytes2int(encrypt_message)
+    except Exception as e:
+        print(e)
