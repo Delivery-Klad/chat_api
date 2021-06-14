@@ -467,9 +467,11 @@ def get_loop_messages(login=Depends(auth_handler.auth_wrapper)):
 @app.get("/file/get/doc_{id}", tags=["Files"])
 async def get_file(id):
     connect, cursor = db_connect()
-    
+    cursor.execute(f"SELECT longlink WHERE id={id}")
+    res = cursor.fetchall()[0][0]
     cursor.close()
     connect.close()
+    return res
 
 
 @app.post("/file/upload", tags=["Files"])
@@ -492,7 +494,6 @@ def url_shorter(url: str):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
     max_id = int(cursor.fetchall()[0][0]) + 1
-    print(max_id)
     cursor.execute(f"INSERT INTO links VALUES({max_id}, '{url}')")
     connect.commit()
     cursor.close()
