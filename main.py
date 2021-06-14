@@ -337,6 +337,7 @@ def get_chat_users(name: str):
     res = cursor.fetchall()
     cursor.close()
     connect.close()
+    print(res)
     return res
 
 
