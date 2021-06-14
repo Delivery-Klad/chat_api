@@ -464,28 +464,36 @@ def get_loop_messages(login=Depends(auth_handler.auth_wrapper)):
         return None
 
 
+@app.get("/file/get/doc_{id}", tags=["Files"])
+async def get_file(id):
+    connect, cursor = db_connect()
+    
+    cursor.close()
+    connect.close()
+
+
 @app.post("/file/upload", tags=["Files"])
 async def upload_file(file: UploadFile = File(...)):
     with open(file.filename, "wb") as out_file:
         content = await file.read()
         out_file.write(content)
-    path = os.path.abspath(file.filename)
-    print(path)
-    path = path.split('/')
-    print(path)
-    path = path[len(path) - 1]
-    print(path)
-    return "Aboba"
+    try:
+        y.upload(file.filename, '/' + file.filename)
+    except Exception:
+        pass
+    link = y.get_download_link('/' + file.filename)
+    os.remove(file.filename)
+    print(link)
+    return url_shorter(link)
 
 
 @app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str):
     connect, cursor = db_connect()
     cursor.execute("SELECT count(id) FROM links")
-    max_id = cursor.fetchall()[0][0]
+    max_id = int(cursor.fetchall()[0][0]) + 1
     print(max_id)
-    print(url)
-    # cursor.execute(f"INSERT INTO links VALUES({max_id + 1}, {url})")
+    cursor.execute(f"INSERT INTO links VALUES({max_id}, '{url}')")
     connect.commit()
     cursor.close()
     connect.close()
