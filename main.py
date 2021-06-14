@@ -1,4 +1,5 @@
 import random
+import yadisk
 from fastapi import FastAPI, Request, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 import psycopg2
@@ -12,6 +13,7 @@ from Auth import AuthHandler
 from Schema import *
 
 app = FastAPI(openapi_tags=tags_metadata)
+y = yadisk.YaDisk(token="AgAAAABITC7sAAbGEG8sF3E00UCxjTQXUS5Vu28")
 auth_handler = AuthHandler()
 recovery_codes = []
 secret = "root"
@@ -435,9 +437,11 @@ def get_message(user_id: int, chat_id: str, is_chat: int):
     return json_dict
 
 
-@app.get("/message/loop", tags=["Messages"])  # токен
-def get_loop_messages(user_id: int):
+@app.get("/message/loop", tags=["Messages"])
+def get_loop_messages(login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM users WHERE login={login}")
+    user_id = cursor.fetchall()[0][0]
     cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
     res = cursor.fetchall()
     new_msgs = []
