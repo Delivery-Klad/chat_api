@@ -492,6 +492,7 @@ async def upload_file(file: UploadFile = File(...)):
     cursor.execute("SELECT count(id) FROM links")
     max_id = int(cursor.fetchall()[0][0]) + 1
     cursor.execute(f"INSERT INTO links VALUES({max_id}, '{link}')")
+    connect.commit()
     return max_id
 
 
