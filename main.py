@@ -292,10 +292,11 @@ def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper)):
         res = str(res).split(',', 1)[0]
         max_id = int(str(res)[1:]) + 1
         cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
-        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {cursor.fetchall()[0][0]})")
+        owner_id = cursor.fetchall()[0][0]
+        cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id INTEGER)")
         connect.commit()
-        cursor.execute(f"INSERT INTO {chat.name} VALUES({owner})")
+        cursor.execute(f"INSERT INTO {chat.name} VALUES({owner_id})")
         connect.commit()
         cursor.close()
         connect.close()
@@ -339,16 +340,6 @@ def get_chat_users(name: str):
     return res
 
 
-@app.get("/chat/get_owner", tags=["Chats"])  # переписать на is_chat_owner
-def get_chat_owner(group_id: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT owner FROM chats WHERE id='{group_id}'")
-    res = cursor.fetchall()[0][0]
-    cursor.close()
-    connect.close()
-    return res
-
-
 @app.post("/chat/invite", tags=["Chats"])
 def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
@@ -380,7 +371,7 @@ def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/message/send", tags=["Messages"])
-def send_message(message: Message):  # пароль и логин (а надо ли?)
+def send_message(message: Message):  # пароль и логин
     try:
         connect, cursor = db_connect()
         msg = int2bytes(message.message)
@@ -398,7 +389,7 @@ def send_message(message: Message):  # пароль и логин (а надо �
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-def send_chat_message(message: Message):  # пароль и логин (а надо ли?)
+def send_chat_message(message: Message):  # пароль и логин
     try:
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
@@ -414,17 +405,23 @@ def send_chat_message(message: Message):  # пароль и логин (а на�
         return JSONResponse(status_code=500)
 
 
-@app.get("/message/get", tags=["Messages"])
+@app.get("/message/get", tags=["Messages"])  # токен
 def get_message(user_id: int, chat_id: int, is_chat: int):
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
-                   "ORDER BY date")
-    res = cursor.fetchall()
     if is_chat == 0:
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
+                       "ORDER BY date")
+        res = cursor.fetchall()
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
                        f"'g%' ORDER BY date")
         res += cursor.fetchall()
-    cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
+        cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
+    else:
+        cursor.execute("SELECT * FROM messages WHERE to_id='{0}' AND from_id LIKE '{1}%' ORDER BY "
+                       "date".format(user_id, chat_id))
+        res = cursor.fetchall()
+        cursor.execute("UPDATE messages SET read=1 WHERE to_id='{0}' AND from_id LIKE '{1}%' AND read=0".
+                       format(user_id, chat_id))
     connect.commit()
     res.sort()
     json_dict = {}
@@ -437,7 +434,7 @@ def get_message(user_id: int, chat_id: int, is_chat: int):
     return json_dict
 
 
-@app.get("/message/loop", tags=["Messages"])
+@app.get("/message/loop", tags=["Messages"])  # токен
 def get_loop_messages(user_id: int):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
@@ -476,10 +473,10 @@ def url_shorter(url: str):
 
 
 @app.post("/document/send", tags=["Files"])
-def send_document():
+def send_document():  # token
     pass
 
 
 @app.get("/document/get", tags=["Files"])
-def get_document():
+def get_document():  # token
     pass
