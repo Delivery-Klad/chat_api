@@ -523,6 +523,6 @@ def encrypt(msg: bytes, pubkey):
         pubkey = pubkey.split(', ')
         pubkey = rsa.PublicKey(int(pubkey[0]), int(pubkey[1]))
         encrypt_message = rsa.encrypt(msg, pubkey)
-        return bytes2int(encrypt_message)
+        return encrypt_message
     except Exception as e:
         print(e)
