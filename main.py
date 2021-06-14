@@ -374,13 +374,15 @@ def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/message/send", tags=["Messages"])
-def send_message(message: Message):  # пароль и логин
+def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
     try:
         connect, cursor = db_connect()
+        cursor.execute(f"SELECT id FROM users WHERE login={login}")
+        sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
         cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{message.sender}','{message.destination}', {psycopg2.Binary(msg)},"
+                       f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
                        f"{psycopg2.Binary(msg1)}, '-', 0)")
         connect.commit()
         cursor.close()
@@ -392,7 +394,7 @@ def send_message(message: Message):  # пароль и логин
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-def send_chat_message(message: Message):  # пароль и логин
+def send_chat_message(message: Message):
     try:
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
@@ -408,9 +410,11 @@ def send_chat_message(message: Message):  # пароль и логин
         return JSONResponse(status_code=500)
 
 
-@app.get("/message/get", tags=["Messages"])  # токен
-def get_message(user_id: int, chat_id: str, is_chat: int):
+@app.get("/message/get", tags=["Messages"])
+def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM users WHERE login={login}")
+    user_id = cursor.fetchall()[0][0]
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
                        "ORDER BY date")
