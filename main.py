@@ -474,19 +474,18 @@ async def get_file(id):
         res = None
     cursor.close()
     connect.close()
-    return """
-    <html>
-        <head></head>
-        <script type="text/JavaScript">
-            function doRedirect() {
-                atTime = "0";
-                toUrl = "{0}";
-                setTimeout("location.href = toUrl;", atTime);
-            }
-        </script>
-        <body onload="doRedirect();"></body>
-    </html>
-    """.format(res)
+    html = '<html>' \
+           '    <head></head>' \
+           '    <script type="text/JavaScript">' \
+           '        function doRedirect() {' \
+           '            atTime = "0";' \
+           '            toUrl = "' + res + '";' \
+           '            setTimeout("location.href = toUrl;", atTime);' \
+           '        }' \
+           '    </script>' \
+           '    <body onload="doRedirect();"></body>'\
+           '</html>'
+    return html
 
 
 @app.post("/file/upload", tags=["Files"])
