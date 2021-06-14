@@ -488,31 +488,27 @@ async def upload_file(file: UploadFile = File(...)):
         pass
     link = y.get_download_link('/' + file.filename)
     os.remove(file.filename)
-    return link
+    connect, cursor = db_connect()
+    cursor.execute("SELECT count(id) FROM links")
+    max_id = int(cursor.fetchall()[0][0]) + 1
+    cursor.execute(f"INSERT INTO links VALUES({max_id}, '{link}')")
+    return max_id
 
 
 @app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
-    cursor.execute("SELECT count(id) FROM links")
-    max_id = int(cursor.fetchall()[0][0]) + 1
-    print(6)
-    cursor.execute(f"INSERT INTO links VALUES({max_id}, '{url}')")
-    link = f"chat-b4ckend.herokuapp.com/file/get/file_{max_id}"
-    print(7)
+    link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
     date = datetime.utcnow().strftime('%d/%m/%y %H:%M:%S')
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
-    print(8)
     cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
     res = cursor.fetchall()[0][0]
-    print(9)
     encrypt_link = encrypt(link.encode('utf-8'), res)
     cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
     res = cursor.fetchall()[0][0]
-    print(10)
     encrypt_link1 = encrypt(link.encode('utf-8'), res)
-    print(11)
+    # ниже ошибка
     cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
                    f"'{user_id}','{destination}', {psycopg2.Binary(encrypt_link)},"
                    f"{psycopg2.Binary(encrypt_link1)}, '-', 0)")
