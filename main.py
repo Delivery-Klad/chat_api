@@ -474,7 +474,19 @@ async def get_file(id):
         res = None
     cursor.close()
     connect.close()
-    return res
+    return """
+    <html>
+        <head></head>
+        <script type="text/JavaScript">
+            function doRedirect() {
+                atTime = "0";
+                toUrl = "{0}";
+                setTimeout("location.href = toUrl;", atTime);
+            }
+        </script>
+        <body onload="doRedirect();"></body>
+    </html>
+    """.format(res)
 
 
 @app.post("/file/upload", tags=["Files"])
@@ -508,7 +520,7 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
     cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
     res = cursor.fetchall()[0][0]
     encrypt_link1 = encrypt(link.encode('utf-8'), res)
-    # ниже ошибка
+    # hh.ru python backend
     cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
                    f"'{user_id}','{destination}', {psycopg2.Binary(encrypt_link)},"
                    f"{psycopg2.Binary(encrypt_link1)}, '-', 0)")
