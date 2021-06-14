@@ -459,7 +459,7 @@ async def upload_file(file: UploadFile = File(...)):
     """with open("files/filename.file", "wb") as file:
             file.write("ff".encode('utf-8'))"""
     return "Aboba"
-    
+
 
 @app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str):
