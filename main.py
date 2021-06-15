@@ -482,7 +482,7 @@ async def upload_file(file: UploadFile = File(...)):
     with open(file.filename, "wb") as out_file:
         content = await file.read()
         out_file.write(content)
-    print(os.stat(file.filename).st_size)
+    # print(os.stat(file.filename).st_size)
     try:
         y.upload(file.filename, '/' + file.filename)
     except Exception:
@@ -514,6 +514,35 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
     cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
                    f"'{user_id}','{destination}', {psycopg2.Binary(encrypt_link)},"
                    f"{psycopg2.Binary(encrypt_link1)}, '-', 0)")
+    connect.commit()
+    cursor.close()
+    connect.close()
+    return True
+
+
+"""
+connect, cursor = db_connect()
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        sender = cursor.fetchall()[0][0]
+        msg = int2bytes(message.message)
+        msg1 = int2bytes(message.message1)
+        cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
+                       f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
+                       f"{psycopg2.Binary(msg1)}, '-', 0)")
+"""
+
+
+@app.get("/url/shorter/chat", tags=["Files"])
+def url_shorter_chat(url: str, sender: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
+    connect, cursor = db_connect()
+    link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
+    date = datetime.utcnow().strftime('%d/%m/%y %H:%M:%S')
+    cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
+    res = cursor.fetchall()[0][0]
+    encrypt_link = encrypt(link.encode('utf-8'), res)
+    cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
+                   f"'{sender}','{destination}', {psycopg2.Binary(encrypt_link)},"
+                   f"{psycopg2.Binary(encrypt_link)}, '-', 0)")
     connect.commit()
     cursor.close()
     connect.close()
