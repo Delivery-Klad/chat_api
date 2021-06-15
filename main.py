@@ -478,7 +478,7 @@ async def get_file(id):
 
 
 @app.post("/file/upload", tags=["Files"])
-async def upload_file(destination: str, file: UploadFile = File(...), login=Depends(auth_handler.auth_wrapper)):
+async def upload_file(file: UploadFile = File(...)):
     with open(file.filename, "wb") as out_file:
         content = await file.read()
         out_file.write(content)
@@ -494,14 +494,12 @@ async def upload_file(destination: str, file: UploadFile = File(...), login=Depe
     max_id = int(cursor.fetchall()[0][0]) + 1
     cursor.execute(f"INSERT INTO links VALUES({max_id}, '{link}')")
     connect.commit()
-    if url_shorter(str(max_id), destination, login, connect, cursor):
-        return JSONResponse(status_code=200)
-    else:
-        return JSONResponse(status_code=500)
+    return max_id
 
 
-# @app.get("/url/shorter", tags=["Files"])
-def url_shorter(url: str, destination: str, login: str, connect, cursor):
+@app.get("/url/shorter", tags=["Files"])
+def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
+    connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
     date = datetime.utcnow().strftime('%d/%m/%y %H:%M:%S')
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
