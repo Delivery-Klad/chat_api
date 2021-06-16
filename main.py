@@ -415,21 +415,24 @@ def send_chat_message(message: Message):
 
 
 @app.get("/message/get", tags=["Messages"])
-def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrapper)):
+def get_message(chat_id: str, is_chat: int, new: Optional[int] = False, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
+    additional_query = ""
+    if new:
+        additional_query = "AND read=0 "
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
-                       f"'g%' ORDER BY date")
+                       f"{additional_query}'g%' ORDER BY date")
         res = cursor.fetchall()
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
-                       f"'g%' ORDER BY date")
+                       f"{additional_query}'g%' ORDER BY date")
         res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     else:
-        cursor.execute("SELECT * FROM messages WHERE to_id='{0}' AND from_id LIKE '{1}%' ORDER BY "
-                       "date".format(user_id, chat_id))
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' "
+                       f"{additional_query}ORDER BY date")
         res = cursor.fetchall()
         cursor.execute("UPDATE messages SET read=1 WHERE to_id='{0}' AND from_id LIKE '{1}%' AND read=0".
                        format(user_id, chat_id))
