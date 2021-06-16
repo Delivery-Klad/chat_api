@@ -403,7 +403,7 @@ def send_chat_message(message: Message):
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute(
-            f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'yy-mm-dd hh24:mi:ss'), '{message.sender}',"
+            f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'), '{message.sender}',"
             f"'{message.destination}', {msg}, {msg}, '-', 0)")
         connect.commit()
         cursor.close()
@@ -502,7 +502,7 @@ async def upload_file(file: UploadFile = File(...)):
 def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
-    date = datetime.utcnow().strftime('%d/%m/%y %H:%M:%S')
+    date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
     cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
@@ -524,7 +524,7 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
 def url_shorter_chat(url: str, sender: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
     connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
-    date = datetime.utcnow().strftime('%d/%m/%y %H:%M:%S')
+    date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
     cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
     res = cursor.fetchall()[0][0]
     encrypt_link = encrypt(link.encode('utf-8'), res)
