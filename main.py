@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 import psycopg2
 import bcrypt
 import smtplib
-from datetime import datetime, timezone
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
@@ -384,6 +384,7 @@ def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
         sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
+        print(message.date)
         cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
                        f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
                        f"{psycopg2.Binary(msg1)}, '-', 0)")
@@ -419,8 +420,8 @@ def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrap
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
     if is_chat == 0:
-        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE 'g%' "
-                       "ORDER BY date")
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
+                       f"'g%' ORDER BY date")
         res = cursor.fetchall()
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
                        f"'g%' ORDER BY date")
@@ -510,7 +511,6 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
     cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
     res = cursor.fetchall()[0][0]
     encrypt_link1 = encrypt(link.encode('utf-8'), res)
-    # hh.ru python backend
     cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
                    f"'{user_id}','{destination}', {psycopg2.Binary(encrypt_link)},"
                    f"{psycopg2.Binary(encrypt_link1)}, '-', 0)")
@@ -518,18 +518,6 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
     cursor.close()
     connect.close()
     return True
-
-
-"""
-connect, cursor = db_connect()
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        sender = cursor.fetchall()[0][0]
-        msg = int2bytes(message.message)
-        msg1 = int2bytes(message.message1)
-        cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
-                       f"{psycopg2.Binary(msg1)}, '-', 0)")
-"""
 
 
 @app.get("/url/shorter/chat", tags=["Files"])
