@@ -424,10 +424,10 @@ def get_message(chat_id: str, is_chat: int, new: Optional[int] = False, login=De
         additional_query = "AND read=0 "
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
-                       f"{additional_query}'g%' ORDER BY date")
+                       f"'g%' {additional_query}ORDER BY date")
         res = cursor.fetchall()
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
-                       f"{additional_query}'g%' ORDER BY date")
+                       f"'g%' {additional_query}ORDER BY date")
         res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     else:
