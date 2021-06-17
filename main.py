@@ -223,6 +223,7 @@ def get_groups(user_id: int):
         tmp = cursor.fetchall()[0][0]
         if tmp == 1:
             groups.append(el[0])
+    print(groups)
     return groups
 
 
