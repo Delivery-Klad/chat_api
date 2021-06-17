@@ -218,7 +218,9 @@ def get_groups(user_id: int):
     groups = []
     cursor.execute("SELECT name FROM chats")
     res = cursor.fetchall()
+    print(res)
     for el in res:
+        print(el)
         cursor.execute(f"SELECT COUNT(id) FROM {el[0]} WHERE id='{user_id}'")
         tmp = cursor.fetchall()[0][0]
         if tmp == 1:
