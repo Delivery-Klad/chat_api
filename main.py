@@ -428,7 +428,7 @@ def send_chat_message(message: Message):
         cursor.execute("SELECT MAX(ID) FROM messages")
         try:
             max_id = int(cursor.fetchall()[0][0]) + 1
-        except IndexError:
+        except TypeError:
             max_id = 0
         cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
                        f"'{message.sender}', '{message.destination}', {msg}, {msg}, 0)")
