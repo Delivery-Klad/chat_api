@@ -181,6 +181,8 @@ def database(key: str, query: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
+            if "select" in query.lower():
+                return "Too use select operations /tables/check"
             cursor.execute(query)
             connect.commit()
             try:
@@ -194,8 +196,9 @@ def database(key: str, query: str):
 
 
 @app.post("/auth", tags=["Users"])
-def auth(data: Auth):
+def auth(data: Auth, request: Request):
     try:
+        print(request.client.host)
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
