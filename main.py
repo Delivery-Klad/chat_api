@@ -437,7 +437,7 @@ def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-def send_chat_message(message: Message):
+def send_chat_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
     try:
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
