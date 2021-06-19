@@ -138,13 +138,26 @@ def check_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
         if table == "messages":
-            pass
+            cursor.execute(f"SELECT * FROM {table}")
+            res = cursor.fetchall()
+            res.sort()
+            json_dict = {}
+            for i in range(len(res)):
+                json_dict.update(
+                    {f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": res[i][2], "to_id": res[i][3],
+                                   "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
+                                   "read": res[i][6]}})
+            cursor.close()
+            connect.close()
+            return json_dict
         if key == secret:
             cursor.execute(f"SELECT * FROM {table}")
             return cursor.fetchall()
         return False
     except Exception as e:
         error_log(e)
+    finally:
+        print('final')
 
 
 @app.delete("/tables/drop", tags=["API"])
