@@ -427,7 +427,8 @@ def send_chat_message(message: Message):
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute("SELECT MAX(ID) FROM messages")
         try:
-            max_id = int(cursor.fetchall()[0][0]) + 1
+            max_id = cursor.fetchall()[0][0]
+            max_id = 0 if max_id is None else int(max_id) + 1
         except TypeError:
             max_id = 0
         cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
