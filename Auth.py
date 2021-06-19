@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 class AuthHandler:
     security = HTTPBearer()
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    secret = 'SECRET'
+    secret = 'AgAAAABITC7sAAbGEG8sF3E00UCxjTQXUS5Vu28'
 
     def encode_token(self, user_id):
         payload = {
@@ -16,11 +16,7 @@ class AuthHandler:
             'iat': datetime.utcnow(),
             'sub': user_id
         }
-        return jwt.encode(
-            payload,
-            self.secret,
-            algorithm='HS256'
-        )
+        return jwt.encode(payload, self.secret, algorithm='HS256')
 
     def decode_token(self, token):
         try:
@@ -28,7 +24,7 @@ class AuthHandler:
             return payload['sub']
         except jwt.ExpiredSignatureError:
             raise HTTPException(status_code=401, detail='Signature has expired')
-        except jwt.InvalidTokenError as e:
+        except jwt.InvalidTokenError:
             raise HTTPException(status_code=401, detail='Invalid token')
 
     def auth_wrapper(self, auth: HTTPAuthorizationCredentials = Security(security)):

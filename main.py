@@ -163,6 +163,23 @@ def create_tables(key: str):
         error_log(e)
 
 
+@app.get("/database", tags=["API"])
+def database(key: str, query: str):
+    connect, cursor = db_connect()
+    try:
+        if key == secret:
+            cursor.execute(query)
+            connect.commit()
+            try:
+                return cursor.fetchall()
+            except Exception as e:
+                print(e)
+                return True
+        return False
+    except Exception as e:
+        error_log(e)
+
+
 @app.post("/auth", tags=["Users"])
 def auth(data: Auth):
     try:
