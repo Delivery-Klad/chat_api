@@ -116,12 +116,12 @@ def create_tables(key: str):
             cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
                            'name TEXT,'
                            'owner INTEGER)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS messages(date TIMESTAMP,'
+            cursor.execute('CREATE TABLE IF NOT EXISTS messages(ID INTEGER,'
+                           'date TIMESTAMP,'
                            'from_id TEXT,'
                            'to_id TEXT,'
                            'message BYTEA,'
                            'message1 BYTEA,'
-                           'file TEXT,'
                            'read INTEGER)')
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id INTEGER,'
                            'longlink TEXT)')
@@ -403,10 +403,14 @@ def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
         sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
-        print(message.date)
-        cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
+        cursor.execute("SELECT MAX(ID) FROM messages")
+        try:
+            max_id = int(cursor.fetchall()[0][0]) + 1
+        except IndexError:
+            max_id = 0
+        cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
                        f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
-                       f"{psycopg2.Binary(msg1)}, '-', 0)")
+                       f"{psycopg2.Binary(msg1)}, 0)")
         connect.commit()
         cursor.close()
         connect.close()
@@ -421,9 +425,13 @@ def send_chat_message(message: Message):
     try:
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
-        cursor.execute(
-            f"INSERT INTO messages VALUES (to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'), '{message.sender}',"
-            f"'{message.destination}', {msg}, {msg}, '-', 0)")
+        cursor.execute("SELECT MAX(ID) FROM messages")
+        try:
+            max_id = int(cursor.fetchall()[0][0]) + 1
+        except IndexError:
+            max_id = 0
+        cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
+                       f"'{message.sender}', '{message.destination}', {msg}, {msg}, 0)")
         connect.commit()
         cursor.close()
         connect.close()
@@ -440,23 +448,23 @@ def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrap
     user_id = cursor.fetchall()[0][0]
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
-                       f"'g%' ORDER BY date")
+                       f"'g%' ORDER BY ID")
         res = cursor.fetchall()
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
-                       f"'g%' ORDER BY date")
+                       f"'g%' ORDER BY ID")
         res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     else:
-        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' ORDER BY date")
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' ORDER BY ID")
         res = cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND read=0")
     connect.commit()
     res.sort()
     json_dict = {}
     for i in range(len(res)):
-        json_dict.update({f"item_{i}": {"date": res[i][0], "from_id": res[i][1], "to_id": res[i][2],
-                                        "message": bytes2int(res[i][3]), "message1": bytes2int(res[i][4]),
-                                        "file": res[i][5], "read": res[i][6]}})
+        json_dict.update({f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": res[i][2], "to_id": res[i][3],
+                                        "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
+                                        "read": res[i][6]}})
     cursor.close()
     connect.close()
     return json_dict
@@ -528,9 +536,13 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
     cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
     res = cursor.fetchall()[0][0]
     encrypt_link1 = encrypt(link.encode('utf-8'), res)
-    cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
-                   f"'{user_id}','{destination}', {psycopg2.Binary(encrypt_link)},"
-                   f"{psycopg2.Binary(encrypt_link1)}, '-', 0)")
+    cursor.execute("SELECT MAX(ID) FROM messages")
+    try:
+        max_id = int(cursor.fetchall()[0][0]) + 1
+    except IndexError:
+        max_id = 0
+    cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'), '{user_id}',"
+                   f"'{destination}', {psycopg2.Binary(encrypt_link)}, {psycopg2.Binary(encrypt_link1)}, 0)")
     connect.commit()
     cursor.close()
     connect.close()
@@ -545,9 +557,13 @@ def url_shorter_chat(url: str, sender: str, destination: str, login=Depends(auth
     cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
     res = cursor.fetchall()[0][0]
     encrypt_link = encrypt(link.encode('utf-8'), res)
-    cursor.execute(f"INSERT INTO messages VALUES (to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'),"
-                   f"'{sender}','{destination}', {psycopg2.Binary(encrypt_link)},"
-                   f"{psycopg2.Binary(encrypt_link)}, '-', 0)")
+    cursor.execute("SELECT MAX(ID) FROM messages")
+    try:
+        max_id = int(cursor.fetchall()[0][0]) + 1
+    except IndexError:
+        max_id = 0
+    cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'), '{sender}',"
+                   f"'{destination}', {psycopg2.Binary(encrypt_link)}, {psycopg2.Binary(encrypt_link)}, 0)")
     connect.commit()
     cursor.close()
     connect.close()
