@@ -406,7 +406,7 @@ def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
         cursor.execute("SELECT MAX(ID) FROM messages")
         try:
             max_id = int(cursor.fetchall()[0][0]) + 1
-        except IndexError:
+        except TypeError:
             max_id = 0
         cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
                        f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
@@ -427,8 +427,7 @@ def send_chat_message(message: Message):
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute("SELECT MAX(ID) FROM messages")
         try:
-            max_id = cursor.fetchall()[0][0]
-            max_id = 0 if max_id is None else int(max_id) + 1
+            max_id = int(cursor.fetchall()[0][0]) + 1
         except TypeError:
             max_id = 0
         cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
@@ -540,7 +539,7 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
     cursor.execute("SELECT MAX(ID) FROM messages")
     try:
         max_id = int(cursor.fetchall()[0][0]) + 1
-    except IndexError:
+    except TypeError:
         max_id = 0
     cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'), '{user_id}',"
                    f"'{destination}', {psycopg2.Binary(encrypt_link)}, {psycopg2.Binary(encrypt_link1)}, 0)")
@@ -561,7 +560,7 @@ def url_shorter_chat(url: str, sender: str, destination: str, login=Depends(auth
     cursor.execute("SELECT MAX(ID) FROM messages")
     try:
         max_id = int(cursor.fetchall()[0][0]) + 1
-    except IndexError:
+    except TypeError:
         max_id = 0
     cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'), '{sender}',"
                    f"'{destination}', {psycopg2.Binary(encrypt_link)}, {psycopg2.Binary(encrypt_link)}, 0)")
