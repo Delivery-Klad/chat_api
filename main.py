@@ -41,6 +41,10 @@ def error_log(error):  # просто затычка, будет дописан�
         print("Возникла ошибка при обработке errorLog (Это вообще как?)")
 
 
+def check_ip():
+    return True
+
+
 @app.head("/api/awake", tags=["API"])
 def api_awake(request: Request):
     print("awake")
@@ -112,7 +116,8 @@ def create_tables(key: str):
                            'login TEXT,'
                            'password TEXT,'
                            'pubkey TEXT,'
-                           'email TEXT)')
+                           'email TEXT,'
+                           'ip TEXT)')
             cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
                            'name TEXT,'
                            'owner INTEGER)')
