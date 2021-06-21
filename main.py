@@ -18,6 +18,7 @@ from Schema import *
 app = FastAPI(openapi_tags=tags_metadata)
 y = yadisk.YaDisk(token="AgAAAABITC7sAAbGEG8sF3E00UCxjTQXUS5Vu28")
 auth_handler = AuthHandler()
+ip_table = {}
 recovery_codes = []
 secret = "root"
 
@@ -60,7 +61,6 @@ def recovery_send(login: str):
         cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
         email = cursor.fetchall()[0][0]
         code = random.randint(100000, 999999)
-        print(code)
         recovery_codes.append(f"{login}_{code}")
         password = "12345qweryQ"
         mail_login = "recovery.chat@mail.ru"
@@ -116,8 +116,7 @@ def create_tables(key: str):
                            'login TEXT,'
                            'password TEXT,'
                            'pubkey TEXT,'
-                           'email TEXT,'
-                           'ip TEXT)')
+                           'email TEXT)')
             cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
                            'name TEXT,'
                            'owner INTEGER)')
@@ -202,8 +201,10 @@ def database(key: str, query: str):
 
 @app.post("/auth", tags=["Users"])
 def auth(data: Auth, request: Request):
+    global ip_table
     try:
-        print(request.client.host)
+        ip_table.update({f'{data.login}': request.client.host})
+        print(ip_table)
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
