@@ -104,17 +104,17 @@ def recovery_validate(data: ResetPassword):
     for i in recovery_codes:
         try:
             res = i.split(data.login)
-            print(res)
             res.pop(0)
             print(f"{data.code} {res[0][1:]}")
             if data.code == res[0][1:]:
                 if data.password is not None:
                     connect, cursor = db_connect()
-                    cursor.execute(f"UPDATE users SET password='{data.password}' WHERE email='{data.login}'")
+                    cursor.execute(f"UPDATE users SET password='{data.password}' WHERE login='{data.login}'")
                     connect.commit()
                     cursor.close()
                     connect.close()
                 return True
+            return False
         except Exception as e:
             print(e)
             return False
