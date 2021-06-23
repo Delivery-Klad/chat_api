@@ -18,7 +18,7 @@ from Schema import *
 app = FastAPI(openapi_tags=tags_metadata)
 y = yadisk.YaDisk(token="AgAAAABITC7sAAbGEG8sF3E00UCxjTQXUS5Vu28")
 auth_handler = AuthHandler()
-ip_table = {}
+ip_table = []
 recovery_codes = []
 secret = "root"
 
@@ -215,8 +215,7 @@ def database(key: str, query: str):
 def auth(data: Auth, request: Request):
     global ip_table
     try:
-        ip_table.update({data.login: request.client.host})
-        print(ip_table)
+        ip_table.insert([data.login][request.client.host])
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
