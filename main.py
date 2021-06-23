@@ -42,8 +42,12 @@ def error_log(error):  # просто затычка, будет дописан�
         print("Возникла ошибка при обработке errorLog (Это вообще как?)")
 
 
-def check_ip():
-    return True
+def check_ip(login: str, ip: str):
+    print(ip_table[f'{login}'])
+    if ip_table['login'] == ip:
+        return True
+    else:
+        return False
 
 
 @app.head("/api/awake", tags=["API"])
@@ -203,7 +207,7 @@ def database(key: str, query: str):
 def auth(data: Auth, request: Request):
     global ip_table
     try:
-        ip_table.update({f'{data.login}': request.client.host})
+        ip_table.update({f'{data.login}': f'{request.client.host}'})
         print(ip_table)
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
@@ -287,7 +291,8 @@ def create_user(user: User):
 
 
 @app.put("/user/update_pubkey", tags=["Users"])
-def create_user(pubkey: NewPubkey, login=Depends(auth_handler.auth_wrapper)):
+def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.auth_wrapper)):
+    check_ip(login, request.client.host)
     connect, cursor = db_connect()
     try:
         cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login={login}")
@@ -301,7 +306,8 @@ def create_user(pubkey: NewPubkey, login=Depends(auth_handler.auth_wrapper)):
 
 
 @app.put("/user/update_password", tags=["Users"])
-def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
+def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.auth_wrapper)):
+    check_ip(login, request.client.host)
     connect, cursor = db_connect()
     try:
         try:
@@ -323,8 +329,9 @@ def create_user(data: NewPassword, login=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/chat/create", tags=["Users"])
-def create_chat(chat: Group, owner=Depends(auth_handler.auth_wrapper)):
+def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_wrapper)):
     try:
+        check_ip(owner, request.client.host)
         connect, cursor = db_connect()
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
                        "'information_schema', 'pg_catalog') AND table_schema IN('public', 'myschema');")
@@ -388,7 +395,8 @@ def get_chat_users(name: str):
 
 
 @app.post("/chat/invite", tags=["Chats"])
-def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
+def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
+    check_ip(user, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
@@ -403,7 +411,8 @@ def chat_invite(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/chat/kick", tags=["Chats"])
-def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
+def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
+    check_ip(user, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
@@ -418,8 +427,9 @@ def chat_kick(invite: Invite, user=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/message/send", tags=["Messages"])
-def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
+def send_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
+        check_ip(login, request.client.host)
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
         sender = cursor.fetchall()[0][0]
@@ -443,8 +453,9 @@ def send_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-def send_chat_message(message: Message, login=Depends(auth_handler.auth_wrapper)):
+def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
+        check_ip(login, request.client.host)
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute("SELECT MAX(ID) FROM messages")
@@ -464,7 +475,8 @@ def send_chat_message(message: Message, login=Depends(auth_handler.auth_wrapper)
 
 
 @app.get("/message/get", tags=["Messages"])
-def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrapper)):
+def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth_handler.auth_wrapper)):
+    check_ip(login, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
@@ -493,7 +505,8 @@ def get_message(chat_id: str, is_chat: int, login=Depends(auth_handler.auth_wrap
 
 
 @app.get("/message/loop", tags=["Messages"])
-def get_loop_messages(login=Depends(auth_handler.auth_wrapper)):
+def get_loop_messages(request: Request, login=Depends(auth_handler.auth_wrapper)):
+    check_ip(login, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
@@ -546,7 +559,8 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 @app.get("/url/shorter", tags=["Files"])
-def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
+def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.auth_wrapper)):
+    check_ip(login, request.client.host)
     connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
     date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
@@ -572,7 +586,9 @@ def url_shorter(url: str, destination: str, login=Depends(auth_handler.auth_wrap
 
 
 @app.get("/url/shorter/chat", tags=["Files"])
-def url_shorter_chat(url: str, sender: str, destination: str, login=Depends(auth_handler.auth_wrapper)):
+def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
+                     login=Depends(auth_handler.auth_wrapper)):
+    check_ip(login, request.client.host)
     connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
     date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
