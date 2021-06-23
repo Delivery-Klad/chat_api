@@ -215,7 +215,7 @@ def database(key: str, query: str):
 def auth(data: Auth, request: Request):
     global ip_table
     try:
-        ip_table.insert([data.login][request.client.host])
+        ip_table.append(f"{data.login}://:{request.client.host}")
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
