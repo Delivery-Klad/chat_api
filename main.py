@@ -100,9 +100,11 @@ def recovery_send(login: str):
 
 @app.post("/recovery/validate", tags=["API"])
 def recovery_validate(data: ResetPassword):
+    print(data)
     for i in recovery_codes:
         try:
             res = i.split(data.login)
+            print(res)
             res.pop(0)
             print(f"{data.code} {res[0][1:]}")
             if data.code == res[0][1:]:
