@@ -42,9 +42,31 @@ def error_log(error):  # просто затычка, будет дописан�
         print("Возникла ошибка при обработке errorLog (Это вообще как?)")
 
 
+def send_mail(email: str, title: str, text: str):
+    try:
+        password = "12345qweryQ"
+        mail_login = "recovery.chat@mail.ru"
+        url = "smtp.mail.ru"
+        server = smtplib.SMTP_SSL(url, 465)
+        msg = MIMEMultipart()
+        msg['Subject'] = title
+        msg['From'] = mail_login
+        body = text
+        msg.attach(MIMEText(body, 'plain'))
+        try:
+            server.login(mail_login, password)
+            server.sendmail(mail_login, email, msg.as_string())
+            return True
+        except Exception as e:
+            print(f'Error {e}')
+            return False
+    except Exception as er:
+        error_log(er)
+
+
 def check_ip(login: str, ip: str):
     print(ip_table[f'{login}'])
-    if ip_table['login'] == ip:
+    if ip_table[f'{login}'] == ip:
         return True
     else:
         return False
@@ -66,25 +88,8 @@ def recovery_send(login: str):
         email = cursor.fetchall()[0][0]
         code = random.randint(100000, 999999)
         recovery_codes.append(f"{login}_{code}")
-        password = "12345qweryQ"
-        mail_login = "recovery.chat@mail.ru"
-        url = "smtp.mail.ru"
-        server = smtplib.SMTP_SSL(url, 465)
-        title = "Recovery code"
-        text = "Your code: {0}".format(code)
-        msg = MIMEMultipart()
-        msg['Subject'] = title
-        msg['From'] = mail_login
-        body = text
-        msg.attach(MIMEText(body, 'plain'))
-        try:
-            server.login(mail_login, password)
-            server.sendmail(mail_login, email, msg.as_string())
-        except Exception as e:
-            print(f'Error {e}')
-            return False
         print(recovery_codes)
-        return True
+        return send_mail(email, "Recovery code", "Your code: {0}".format(code))
     except Exception as e:
         error_log(e)
         return None
