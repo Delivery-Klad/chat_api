@@ -65,7 +65,9 @@ def send_mail(email: str, title: str, text: str):
 
 
 def check_ip(login: str, ip: str):
+    print(ip_table.keys())
     print(ip_table[f'{login}'])
+    return True
     if ip_table[f'{login}'] == ip:
         return True
     else:
