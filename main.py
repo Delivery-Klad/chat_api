@@ -65,8 +65,8 @@ def send_mail(email: str, title: str, text: str):
 
 
 def check_ip(login: str, ip: str):
-    print(ip_table.keys())
-    print(ip_table[f'{login}'])
+    print(ip_table)
+    print(ip_table[login])
     return True
     if ip_table[f'{login}'] == ip:
         return True
@@ -214,8 +214,7 @@ def database(key: str, query: str):
 def auth(data: Auth, request: Request):
     global ip_table
     try:
-        ip_table.update({f'{data.login}': f'{request.client.host}'})
-        print(ip_table)
+        ip_table.update({data.login: request.client.host})
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
