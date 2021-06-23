@@ -64,15 +64,15 @@ def send_mail(email: str, title: str, text: str):
         error_log(er)
 
 
+@app.get("/api/a", tags=["API"])
 def check_ip(login: str, ip: str):
     global ip_table
     print(ip_table)
-    print(ip_table[login])
     return True
-    if ip_table[f'{login}'] == ip:
+    """if ip_table[login] == ip:
         return True
     else:
-        return False
+        return False"""
 
 
 @app.head("/api/awake", tags=["API"])
@@ -216,6 +216,7 @@ def auth(data: Auth, request: Request):
     global ip_table
     try:
         ip_table.update({data.login: request.client.host})
+        print(ip_table)
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
