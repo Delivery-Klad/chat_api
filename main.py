@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 import psycopg2
 import bcrypt
 import smtplib
+import threading
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -64,12 +65,20 @@ def send_mail(email: str, title: str, text: str):
         error_log(er)
 
 
-@app.get("/api/a", tags=["API"])
-def check_ip(login: str, ip: str):  # загнать в поток и получить мейл
+def check_ip(login: str, ip: str):
     global ip_table
     if f"{login}://:{ip}" not in ip_table:
-        pass
-        # send_mail()
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
+        email = cursor.fetchall()[0][0]
+        send_mail(email, "Unknown device", f"Обнаружен вход с ip {ip}")
+        cursor.close()
+        connect.close()
+
+
+def ip_thread(login: str, ip: str):
+    thread = threading.Thread(target=check_ip, args=(login, ip))
+    thread.start()
 
 
 @app.head("/api/awake", tags=["API"])
@@ -300,7 +309,7 @@ def create_user(user: User):
 
 @app.put("/user/update_pubkey", tags=["Users"])
 def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.auth_wrapper)):
-    check_ip(login, request.client.host)
+    ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
         cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login={login}")
@@ -315,7 +324,7 @@ def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.
 
 @app.put("/user/update_password", tags=["Users"])
 def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.auth_wrapper)):
-    check_ip(login, request.client.host)
+    ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
         try:
@@ -339,7 +348,7 @@ def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.
 @app.post("/chat/create", tags=["Users"])
 def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_wrapper)):
     try:
-        check_ip(owner, request.client.host)
+        ip_thread(owner, request.client.host)
         connect, cursor = db_connect()
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
                        "'information_schema', 'pg_catalog') AND table_schema IN('public', 'myschema');")
@@ -404,7 +413,7 @@ def get_chat_users(name: str):
 
 @app.post("/chat/invite", tags=["Chats"])
 def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
-    check_ip(user, request.client.host)
+    ip_thread(user, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
@@ -420,7 +429,7 @@ def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth
 
 @app.post("/chat/kick", tags=["Chats"])
 def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
-    check_ip(user, request.client.host)
+    ip_thread(user, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
     cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
@@ -437,7 +446,7 @@ def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_w
 @app.post("/message/send", tags=["Messages"])
 def send_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
-        check_ip(login, request.client.host)
+        ip_thread(login, request.client.host)
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
         sender = cursor.fetchall()[0][0]
@@ -463,7 +472,7 @@ def send_message(message: Message, request: Request, login=Depends(auth_handler.
 @app.post("/message/send/chat", tags=["Messages"])
 def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
-        check_ip(login, request.client.host)
+        ip_thread(login, request.client.host)
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute("SELECT MAX(ID) FROM messages")
@@ -484,7 +493,7 @@ def send_chat_message(message: Message, request: Request, login=Depends(auth_han
 
 @app.get("/message/get", tags=["Messages"])
 def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth_handler.auth_wrapper)):
-    check_ip(login, request.client.host)
+    ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
@@ -514,7 +523,7 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
 
 @app.get("/message/loop", tags=["Messages"])
 def get_loop_messages(request: Request, login=Depends(auth_handler.auth_wrapper)):
-    check_ip(login, request.client.host)
+    ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
@@ -568,7 +577,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.auth_wrapper)):
-    check_ip(login, request.client.host)
+    ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
     date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
@@ -596,7 +605,7 @@ def url_shorter(url: str, destination: str, request: Request, login=Depends(auth
 @app.get("/url/shorter/chat", tags=["Files"])
 def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
                      login=Depends(auth_handler.auth_wrapper)):
-    check_ip(login, request.client.host)
+    ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
     date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
