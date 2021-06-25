@@ -69,6 +69,7 @@ def check_ip(login: str, ip: str):
     global ip_table
     print(ip_table)
     print(f"{login}://:{ip}")
+    print(f"{login}://:{ip}" in ip_table)
     if f"{login}://:{ip}" not in ip_table:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
