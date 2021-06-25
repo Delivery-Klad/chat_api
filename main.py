@@ -67,6 +67,8 @@ def send_mail(email: str, title: str, text: str):
 
 def check_ip(login: str, ip: str):
     global ip_table
+    print(ip_table)
+    print(f"{login}://:{ip}")
     if f"{login}://:{ip}" not in ip_table:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
