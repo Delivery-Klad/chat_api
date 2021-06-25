@@ -67,9 +67,6 @@ def send_mail(email: str, title: str, text: str):
 
 def check_ip(login: str, ip: str):
     global ip_table
-    print(ip_table)
-    print(f"{login}://:{ip}")
-    print(f"{login}://:{ip}" in ip_table)
     if f"{login}://:{ip}" not in ip_table:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
@@ -240,6 +237,19 @@ def auth(data: Auth, request: Request):
         return None
     except Exception as e:
         error_log(e)
+
+
+@app.get("/user/get_random", tags=["Users"])
+def get_random():
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id, login FROM users, random_seed rs ORDER BY rs.random_seed LIMIT 30")
+    res = cursor.fetchall()
+    res_dict = {}
+    for i in range(len(res)):
+        res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+    cursor.close()
+    connect.close()
+    return res_dict
 
 
 @app.get("/user/can_use_login", tags=["Users"])
