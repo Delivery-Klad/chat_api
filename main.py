@@ -252,6 +252,19 @@ def get_random():
     return res_dict
 
 
+@app.get("/user/find", tags=["Users"])
+def find_user(login: str):
+    connect, cursor = db_connect()
+    cursor.execute(f"SELECT id FROM users WHERE login LIKE '%{login}%'")
+    res = cursor.fetchall()
+    res_dict = {}
+    for i in range(len(res)):
+        res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+    cursor.close()
+    connect.close()
+    return res_dict
+
+
 @app.get("/user/can_use_login", tags=["Users"])
 def can_use_login(login: str):
     connect, cursor = db_connect()
