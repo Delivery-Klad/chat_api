@@ -1,6 +1,3 @@
-ip_table = {}
+import secrets
 
-
-ip_table.update({f'test1': f'0.0.0.0'})
-ip_table.update({f'test2': f'0.0.0.1'})
-print(ip_table.get('test3'))
+print(secrets.token_hex(30))
