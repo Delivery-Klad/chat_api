@@ -239,10 +239,10 @@ def auth(data: Auth, request: Request):
         error_log(e)
 
 
-@app.get("/user/get_random", tags=["Users"])
+@app.get("/user/get_random", tags=["Users"])  # переписать запрос
 def get_random():
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT id, login FROM users, random_seed rs ORDER BY rs.random_seed LIMIT 30")
+    cursor.execute(f"SELECT id, login FROM users, ORDER BY random() LIMIT 30")
     res = cursor.fetchall()
     res_dict = {}
     for i in range(len(res)):
