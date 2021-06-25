@@ -255,7 +255,7 @@ def get_random():
 @app.get("/user/find", tags=["Users"])
 def find_user(login: str):
     connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login LIKE '%{login}%'")
+    cursor.execute(f"SELECT id, login FROM users WHERE login LIKE '%{login}%'")
     res = cursor.fetchall()
     res_dict = {}
     for i in range(len(res)):
