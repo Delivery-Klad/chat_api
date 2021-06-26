@@ -1,3 +1,3 @@
 import secrets
 
-print(secrets.token_hex(30))
+print(secrets.token_hex(10))

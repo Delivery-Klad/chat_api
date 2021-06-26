@@ -527,9 +527,10 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
                        f"'g%' ORDER BY ID")
         res = cursor.fetchall()
-        cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id LIKE "
-                       f"'g%' ORDER BY ID")
-        res += cursor.fetchall()
+        if int(user_id) != int(chat_id):
+            cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id "
+                           f"LIKE 'g%' ORDER BY ID")
+            res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
     else:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' ORDER BY ID")

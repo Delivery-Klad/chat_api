@@ -10,7 +10,7 @@ class AuthHandler:
     security = HTTPBearer()
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     # secret = secrets.token_hex(30)
-    secret = "SECRET"
+    secret = "1d02a83bd52d133e8b31"
 
     def encode_token(self, user_id):
         payload = {
