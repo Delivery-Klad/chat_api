@@ -338,7 +338,7 @@ def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login={login}")
+        cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login='{login}'")
         connect.commit()
         cursor.close()
         connect.close()
