@@ -423,12 +423,10 @@ def get_chat_name(group_id: str):
 
 
 @app.get("/chat/get_users", tags=["Chats"])
-def get_chat_users(name: str):
-    """
-    сдалать авторизацию и сделать другой метод для проверки есть ли
-    пользователь в определенной группе
-    """
+def get_chat_users(group_id: str):
     connect, cursor = db_connect()
+    cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
+    name = cursor.fetchall()[0][0]
     cursor.execute(f"SELECT id FROM {name}")
     res = cursor.fetchall()
     cursor.close()
@@ -540,7 +538,9 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
     res.sort()
     json_dict = {}
     for i in range(len(res)):
-        json_dict.update({f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": res[i][2], "to_id": res[i][3],
+        cursor.execute(f"SELECT login FROM users WHERE id={res[i][2].split('_', 1)[1]}")
+        name = cursor.fetchall()[0][0]
+        json_dict.update({f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": name, "to_id": res[i][3],
                                         "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                         "read": res[i][6]}})
     cursor.close()
