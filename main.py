@@ -419,12 +419,10 @@ def get_chat_users(group_id: str):
     connect, cursor = db_connect()
     cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
     name = cursor.fetchall()[0][0]
-    print(name)
     cursor.execute(f"SELECT id FROM {name}")
     res = cursor.fetchall()
     cursor.close()
     connect.close()
-    print(res)
     return res
 
 
