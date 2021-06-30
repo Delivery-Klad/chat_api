@@ -133,10 +133,10 @@ def create_tables(key: str):
     try:
         if key == secret:
             cursor.execute('CREATE TABLE IF NOT EXISTS users(id BIGSERIAL NOT NULL PRIMARY KEY,'
-                           'login TEXT,'
-                           'password TEXT,'
-                           'pubkey TEXT,'
-                           'email TEXT)')
+                           'login TEXT NOT NULL,'
+                           'password TEXT NOT NULL,'
+                           'pubkey TEXT NOT NULL,'
+                           'email TEXT NOT NULL)')
             cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
                            'name TEXT,'
                            'owner INTEGER)')
@@ -186,7 +186,7 @@ def check_tables(key: str, table: str):
 
 
 @app.delete("/tables/drop", tags=["API"])
-def create_tables(key: str, table: str):
+def drop_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
