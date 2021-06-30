@@ -137,18 +137,18 @@ def create_tables(key: str):
                            'password TEXT NOT NULL,'
                            'pubkey TEXT NOT NULL,'
                            'email TEXT NOT NULL)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT,'
-                           'name TEXT,'
-                           'owner INTEGER)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS messages(ID INTEGER,'
-                           'date TIMESTAMP,'
-                           'from_id TEXT,'
-                           'to_id TEXT,'
-                           'message BYTEA,'
+            cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT NOT NULL,'
+                           'name TEXT NOT NULL,'
+                           'owner INTEGER NOT NULL)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS messages(ID BIGSERIAL NOT NULL PRIMARY KEY,'
+                           'date TIMESTAMP NOT NULL,'
+                           'from_id TEXT NOT NULL,'
+                           'to_id TEXT NOT NULL,'
+                           'message BYTEA NOT NULL,'
                            'message1 BYTEA,'
-                           'read INTEGER)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS links(id INTEGER,'
-                           'longlink TEXT)')
+                           'read INTEGER NOT NULL)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS links(id BIGSERIAL NOT NULL PRIMARY KEY,'
+                           'longlink TEXT NOT NULL)')
         connect.commit()
         cursor.close()
         connect.close()
