@@ -149,7 +149,6 @@ def create_tables(key: str):
                            'read INTEGER)')
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id INTEGER,'
                            'longlink TEXT)')
-            cursor.execute('ALTER TABLE users ALTER COLUMN id TYPE BIGSERIAL')
         connect.commit()
         cursor.close()
         connect.close()
