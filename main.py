@@ -316,14 +316,8 @@ def get_groups(user_id: int):
 def create_user(user: User):
     try:
         connect, cursor = db_connect()
-        cursor.execute("SELECT MAX(id) FROM users")
-        max_id = cursor.fetchall()[0][0]
-        if max_id is not None:
-            max_id += 1
-        else:
-            max_id = 0
-        cursor.execute(f"INSERT INTO users VALUES ({max_id},'{user.login}','{user.password}','{user.pubkey}',"
-                       f"'{user.email}')")
+        cursor.execute(f"INSERT INTO users(login, password, pubkey, email) VALUES ('{user.login}','{user.password}',"
+                       f"'{user.pubkey}','{user.email}')")
         connect.commit()
         return True
     except Exception as e:
@@ -474,14 +468,9 @@ def send_message(message: Message, request: Request, login=Depends(auth_handler.
         sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
-        cursor.execute("SELECT MAX(ID) FROM messages")
-        try:
-            max_id = int(cursor.fetchall()[0][0]) + 1
-        except TypeError:
-            max_id = 0
-        cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{sender}','{message.destination}', {psycopg2.Binary(msg)},"
-                       f"{psycopg2.Binary(msg1)}, 0)")
+        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
+                       f"'{message.date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
+                       f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
         connect.commit()
         cursor.close()
         connect.close()
@@ -497,13 +486,9 @@ def send_chat_message(message: Message, request: Request, login=Depends(auth_han
         ip_thread(login, request.client.host)
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
-        cursor.execute("SELECT MAX(ID) FROM messages")
-        try:
-            max_id = int(cursor.fetchall()[0][0]) + 1
-        except TypeError:
-            max_id = 0
-        cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{message.date}', 'dd-mm-yy hh24:mi:ss'),"
-                       f"'{message.sender}', '{message.destination}', {msg}, {msg}, 0)")
+        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
+                       f"'{message.date}', 'dd-mm-yy hh24:mi:ss'),'{message.sender}','{message.destination}',{msg},"
+                       f"{msg}, 0)")
         connect.commit()
         cursor.close()
         connect.close()
@@ -621,13 +606,9 @@ def url_shorter(url: str, destination: str, request: Request, login=Depends(auth
     cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
     res = cursor.fetchall()[0][0]
     encrypt_link1 = encrypt(link.encode('utf-8'), res)
-    cursor.execute("SELECT MAX(ID) FROM messages")
-    try:
-        max_id = int(cursor.fetchall()[0][0]) + 1
-    except TypeError:
-        max_id = 0
-    cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'), '{user_id}',"
-                   f"'{destination}', {psycopg2.Binary(encrypt_link)}, {psycopg2.Binary(encrypt_link1)}, 0)")
+    cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp('{date}',"
+                   f"'dd-mm-yy hh24:mi:ss'),'{user_id}','{destination}',{psycopg2.Binary(encrypt_link)},"
+                   f"{psycopg2.Binary(encrypt_link1)}, 0)")
     connect.commit()
     cursor.close()
     connect.close()
@@ -644,13 +625,9 @@ def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
     cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
     res = cursor.fetchall()[0][0]
     encrypt_link = encrypt(link.encode('utf-8'), res)
-    cursor.execute("SELECT MAX(ID) FROM messages")
-    try:
-        max_id = int(cursor.fetchall()[0][0]) + 1
-    except TypeError:
-        max_id = 0
-    cursor.execute(f"INSERT INTO messages VALUES ({max_id}, to_timestamp('{date}', 'dd-mm-yy hh24:mi:ss'), '{sender}',"
-                   f"'{destination}', {psycopg2.Binary(encrypt_link)}, {psycopg2.Binary(encrypt_link)}, 0)")
+    cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp('{date}',"
+                   f"'dd-mm-yy hh24:mi:ss'),'{sender}','{destination}',{psycopg2.Binary(encrypt_link)},"
+                   f"{psycopg2.Binary(encrypt_link)}, 0)")
     connect.commit()
     cursor.close()
     connect.close()
