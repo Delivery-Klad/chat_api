@@ -132,7 +132,7 @@ def create_tables(key: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
-            cursor.execute('CREATE TABLE IF NOT EXISTS users(id INTEGER,'
+            cursor.execute('CREATE TABLE IF NOT EXISTS users(id BIGSERIAL NOT NULL PRIMARY KEY,'
                            'login TEXT,'
                            'password TEXT,'
                            'pubkey TEXT,'
@@ -149,6 +149,7 @@ def create_tables(key: str):
                            'read INTEGER)')
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id INTEGER,'
                            'longlink TEXT)')
+            cursor.execute('ALTER TABLE users ALTER COLUMN id TYPE BIGSERIAL')
         connect.commit()
         cursor.close()
         connect.close()
@@ -185,13 +186,11 @@ def check_tables(key: str, table: str):
 
 
 @app.delete("/tables/drop", tags=["API"])
-def create_tables(key: str):
+def create_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
-            cursor.execute("DROP TABLE messages")
-            cursor.execute("DROP TABLE users")
-            cursor.execute("DROP TABLE chats")
+            cursor.execute(f"DROP TABLE {table}")
             connect.commit()
         cursor.close()
         connect.close()
@@ -518,6 +517,7 @@ def send_chat_message(message: Message, request: Request, login=Depends(auth_han
 @app.get("/message/get", tags=["Messages"])
 def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
+    json_dict = {}
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
@@ -531,7 +531,6 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
             res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
         res.sort()
-        json_dict = {}
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2]}")
             name = cursor.fetchall()[0][0]
@@ -543,7 +542,6 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
         res = cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND read=0")
         res.sort()
-        json_dict = {}
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2].split('_', 1)[1]}")
             name = cursor.fetchall()[0][0]
