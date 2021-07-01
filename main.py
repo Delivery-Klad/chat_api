@@ -82,9 +82,8 @@ def ip_thread(login: str, ip: str):
 
 
 @app.head("/api/awake", tags=["API"])
-def api_awake(request: Request):
+def api_awake():
     print("awake")
-    print(request.client.host)
     return True
 
 
@@ -106,7 +105,6 @@ def recovery_send(login: str):
 
 @app.post("/recovery/validate", tags=["API"])
 def recovery_validate(data: ResetPassword):
-    print(data)
     for i in recovery_codes:
         try:
             res = i.split(data.login)
@@ -140,7 +138,7 @@ def create_tables(key: str):
             cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT NOT NULL,'
                            'name TEXT NOT NULL,'
                            'owner INTEGER NOT NULL)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS messages(ID BIGSERIAL NOT NULL PRIMARY KEY,'
+            cursor.execute('CREATE TABLE IF NOT EXISTS messages(id BIGSERIAL NOT NULL PRIMARY KEY,'
                            'date TIMESTAMP NOT NULL,'
                            'from_id TEXT NOT NULL,'
                            'to_id TEXT NOT NULL,'
@@ -149,7 +147,12 @@ def create_tables(key: str):
                            'read INTEGER NOT NULL)')
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id BIGSERIAL NOT NULL PRIMARY KEY,'
                            'longlink TEXT NOT NULL)')
-        connect.commit()
+            connect.commit()
+            cursor.execute("ALTER TABLE users ADD UNIQUE(id)")
+            cursor.execute("ALTER TABLE messages ADD UNIQUE(id)")
+            cursor.execute("ALTER TABLE links ADD UNIQUE(id)")
+            cursor.execute("ALTER TABLE chats ADD UNIQUE(id)")
+            connect.commit()
         cursor.close()
         connect.close()
         return True
@@ -239,46 +242,60 @@ def auth(data: Auth, request: Request):
 
 @app.get("/user/get_random", tags=["Users"])  # переписать запрос
 def get_random():
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT id, login FROM users ORDER BY random() LIMIT 30")
-    res = cursor.fetchall()
-    res_dict = {}
-    for i in range(len(res)):
-        res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
-    cursor.close()
-    connect.close()
-    return res_dict
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT id, login FROM users ORDER BY random() LIMIT 30")
+        res = cursor.fetchall()
+        res_dict = {}
+        for i in range(len(res)):
+            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+        cursor.close()
+        connect.close()
+        return res_dict
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/user/find", tags=["Users"])
 def find_user(login: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT id, login FROM users WHERE login LIKE '%{login}%'")
-    res = cursor.fetchall()
-    res_dict = {}
-    for i in range(len(res)):
-        res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
-    cursor.close()
-    connect.close()
-    return res_dict
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT id, login FROM users WHERE login LIKE '%{login}%'")
+        res = cursor.fetchall()
+        res_dict = {}
+        for i in range(len(res)):
+            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+        cursor.close()
+        connect.close()
+        return res_dict
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/user/can_use_login", tags=["Users"])
 def can_use_login(login: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     try:
-        cursor.fetchall()[0][0]
-    except IndexError:
-        return True
-    return False
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        try:
+            cursor.fetchall()[0][0]
+        except IndexError:
+            return True
+        return False
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/user/get_id", tags=["Users"])
 def get_id(login: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-    return cursor.fetchall()[0][0]
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        return cursor.fetchall()[0][0]
+    except IndexError:
+        return None
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/user/get_nickname", tags=["Users"])
@@ -289,27 +306,37 @@ def get_nickname(id: int):
         return cursor.fetchall()[0][0]
     except IndexError:
         return None
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/user/get_pubkey", tags=["Users"])
 def get_pubkey(id: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
-    return cursor.fetchall()[0][0]
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
+        return cursor.fetchall()[0][0]
+    except IndexError:
+        return None
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/user/get_groups", tags=["Users"])
 def get_groups(user_id: int):
-    connect, cursor = db_connect()
-    groups = []
-    cursor.execute("SELECT name FROM chats")
-    res = cursor.fetchall()
-    for el in res:
-        cursor.execute(f"SELECT COUNT(id) FROM {el[0]} WHERE id={user_id}")
-        tmp = cursor.fetchall()[0][0]
-        if tmp == 1:
-            groups.append(el[0])
-    return groups
+    try:
+        connect, cursor = db_connect()
+        groups = []
+        cursor.execute("SELECT name FROM chats")
+        res = cursor.fetchall()
+        for el in res:
+            cursor.execute(f"SELECT COUNT(id) FROM {el[0]} WHERE id={user_id}")
+            tmp = cursor.fetchall()[0][0]
+            if tmp == 1:
+                groups.append(el[0])
+        return groups
+    except Exception as e:
+        error_log(e)
 
 
 @app.post("/user/create", tags=["Users"])
@@ -328,8 +355,8 @@ def create_user(user: User):
 @app.put("/user/update_pubkey", tags=["Users"])
 def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
     try:
+        connect, cursor = db_connect()
         cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login='{login}'")
         connect.commit()
         cursor.close()
@@ -343,8 +370,8 @@ def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.
 @app.put("/user/update_password", tags=["Users"])
 def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
     try:
+        connect, cursor = db_connect()
         try:
             cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
             res = bcrypt.checkpw(data.old_password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
@@ -365,8 +392,8 @@ def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.
 
 @app.post("/chat/create", tags=["Users"])
 def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_wrapper)):
+    ip_thread(owner, request.client.host)
     try:
-        ip_thread(owner, request.client.host)
         connect, cursor = db_connect()
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
                        "'information_schema', 'pg_catalog') AND table_schema IN('public', 'myschema');")
@@ -396,66 +423,81 @@ def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_w
 
 @app.get("/chat/get_id", tags=["Chats"])
 def get_chat_id(name: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
-    group_id = cursor.fetchall()[0][0]
-    cursor.close()
-    connect.close()
-    return group_id
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
+        group_id = cursor.fetchall()[0][0]
+        cursor.close()
+        connect.close()
+        return group_id
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/chat/get_name", tags=["Chats"])
 def get_chat_name(group_id: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-    name = cursor.fetchall()[0][0]
-    cursor.close()
-    connect.close()
-    return name
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
+        name = cursor.fetchall()[0][0]
+        cursor.close()
+        connect.close()
+        return name
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/chat/get_users", tags=["Chats"])
 def get_chat_users(group_id: str):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-    name = cursor.fetchall()[0][0]
-    cursor.execute(f"SELECT id FROM {name}")
-    res = cursor.fetchall()
-    cursor.close()
-    connect.close()
-    return res
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
+        name = cursor.fetchall()[0][0]
+        cursor.execute(f"SELECT id FROM {name}")
+        res = cursor.fetchall()
+        cursor.close()
+        connect.close()
+        return res
+    except Exception as e:
+        error_log(e)
 
 
 @app.post("/chat/invite", tags=["Chats"])
 def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
     ip_thread(user, request.client.host)
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
-    cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
-    owner = cursor.fetchall()[0][0]
-    if owner == user:
-        cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
-        connect.commit()
-        cursor.close()
-        connect.close()
-        return True
-    return False
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
+        cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
+        owner = cursor.fetchall()[0][0]
+        if owner == user:
+            cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
+            connect.commit()
+            cursor.close()
+            connect.close()
+            return True
+        return False
+    except Exception as e:
+        error_log(e)
 
 
 @app.post("/chat/kick", tags=["Chats"])
 def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
     ip_thread(user, request.client.host)
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
-    cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
-    owner = cursor.fetchall()[0][0]
-    if owner == user:
-        cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
-        connect.commit()
-        cursor.close()
-        connect.close()
-        return True
-    return False
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
+        cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
+        owner = cursor.fetchall()[0][0]
+        if owner == user:
+            cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
+            connect.commit()
+            cursor.close()
+            connect.close()
+            return True
+        return False
+    except Exception as e:
+        error_log(e)
 
 
 @app.post("/message/send", tags=["Messages"])
@@ -540,97 +582,112 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
 @app.get("/message/loop", tags=["Messages"])
 def get_loop_messages(request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-    user_id = cursor.fetchall()[0][0]
-    cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
-    res = cursor.fetchall()
-    new_msgs = []
-    temp = ''
-    for i in res:
-        if i[0] not in new_msgs:
-            new_msgs.append(i[0])
-    for i in new_msgs:
-        temp += i + ', '
-    if temp != '':
-        return temp[:-2]
-    else:
-        return None
+    try:
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        user_id = cursor.fetchall()[0][0]
+        cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
+        res = cursor.fetchall()
+        new_msgs = []
+        temp = ''
+        for i in res:
+            if i[0] not in new_msgs:
+                new_msgs.append(i[0])
+        for i in new_msgs:
+            temp += i + ', '
+        if temp != '':
+            return temp[:-2]
+        else:
+            return None
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/file/get/file_{id}", tags=["Files"])
 async def get_file(id):
-    connect, cursor = db_connect()
-    cursor.execute(f"SELECT longlink FROM links WHERE id={id}")
     try:
-        res = cursor.fetchall()[0][0]
-    except IndexError:
-        res = None
-    cursor.close()
-    connect.close()
-    return RedirectResponse(url=res)
+        connect, cursor = db_connect()
+        cursor.execute(f"SELECT longlink FROM links WHERE id={id}")
+        try:
+            res = cursor.fetchall()[0][0]
+        except IndexError:
+            res = None
+        cursor.close()
+        connect.close()
+        return RedirectResponse(url=res)
+    except Exception as e:
+        error_log(e)
 
 
 @app.post("/file/upload", tags=["Files"])
 async def upload_file(file: UploadFile = File(...)):
-    with open(file.filename, "wb") as out_file:
-        content = await file.read()
-        out_file.write(content)
-    # print(os.stat(file.filename).st_size)
     try:
-        y.upload(file.filename, '/' + file.filename)
-    except Exception:
-        pass
-    link = y.get_download_link('/' + file.filename)
-    os.remove(file.filename)
-    connect, cursor = db_connect()
-    cursor.execute("SELECT count(id) FROM links")
-    max_id = int(cursor.fetchall()[0][0]) + 1
-    cursor.execute(f"INSERT INTO links VALUES({max_id}, '{link}')")
-    connect.commit()
-    return max_id
+        with open(file.filename, "wb") as out_file:
+            content = await file.read()
+            out_file.write(content)
+        # print(os.stat(file.filename).st_size)
+        try:
+            y.upload(file.filename, '/' + file.filename)
+        except Exception:
+            pass
+        link = y.get_download_link('/' + file.filename)
+        os.remove(file.filename)
+        connect, cursor = db_connect()
+        cursor.execute("SELECT count(id) FROM links")
+        max_id = int(cursor.fetchall()[0][0]) + 1
+        cursor.execute(f"INSERT INTO links VALUES({max_id}, '{link}')")
+        connect.commit()
+        return max_id
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/url/shorter", tags=["Files"])
 def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
-    link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
-    date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-    cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-    user_id = cursor.fetchall()[0][0]
-    cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
-    res = cursor.fetchall()[0][0]
-    encrypt_link = encrypt(link.encode('utf-8'), res)
-    cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
-    res = cursor.fetchall()[0][0]
-    encrypt_link1 = encrypt(link.encode('utf-8'), res)
-    cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp('{date}',"
-                   f"'dd-mm-yy hh24:mi:ss'),'{user_id}','{destination}',{psycopg2.Binary(encrypt_link)},"
-                   f"{psycopg2.Binary(encrypt_link1)}, 0)")
-    connect.commit()
-    cursor.close()
-    connect.close()
-    return True
+    try:
+        connect, cursor = db_connect()
+        link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
+        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        user_id = cursor.fetchall()[0][0]
+        cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
+        res = cursor.fetchall()[0][0]
+        encrypt_link = encrypt(link.encode('utf-8'), res)
+        cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
+        res = cursor.fetchall()[0][0]
+        encrypt_link1 = encrypt(link.encode('utf-8'), res)
+        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES "
+                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{user_id}','{destination}',"
+                       f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link1)}, 0)")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
+    except Exception as e:
+        error_log(e)
 
 
 @app.get("/url/shorter/chat", tags=["Files"])
 def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
                      login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
-    link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
-    date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-    cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
-    res = cursor.fetchall()[0][0]
-    encrypt_link = encrypt(link.encode('utf-8'), res)
-    cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp('{date}',"
-                   f"'dd-mm-yy hh24:mi:ss'),'{sender}','{destination}',{psycopg2.Binary(encrypt_link)},"
-                   f"{psycopg2.Binary(encrypt_link)}, 0)")
-    connect.commit()
-    cursor.close()
-    connect.close()
-    return True
+    try:
+        connect, cursor = db_connect()
+        link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
+        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+        cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
+        res = cursor.fetchall()[0][0]
+        encrypt_link = encrypt(link.encode('utf-8'), res)
+        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES "
+                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{destination}',"
+                       f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link)}, 0)")
+        connect.commit()
+        cursor.close()
+        connect.close()
+        return True
+    except Exception as e:
+        error_log(e)
 
 
 def encrypt(msg: bytes, pubkey):
