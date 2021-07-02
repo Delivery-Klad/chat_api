@@ -17,7 +17,7 @@ from Auth import AuthHandler
 from Schema import *
 
 app = FastAPI(openapi_tags=tags_metadata)
-y = yadisk.YaDisk(token="AgAAAABITC7sAAbGEG8sF3E00UCxjTQXUS5Vu28")
+y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 auth_handler = AuthHandler()
 ip_table = []
 recovery_codes = []
@@ -26,11 +26,11 @@ secret = "root"
 
 def db_connect():
     con = psycopg2.connect(
-        host="ec2-54-247-107-109.eu-west-1.compute.amazonaws.com",
-        database="de81d5uf5eagcd",
-        user="guoucmhwdhynrf",
-        port="5432",
-        password="7720bda9eb76c990aee593f9064fa653136e3a047f989f53856b37549549ebe6")
+        host=os.environ.get('host'),
+        database=os.environ.get('database'),
+        user=os.environ.get('user'),
+        port=os.environ.get('port'),
+        password=os.environ.get('password'))
     cur = con.cursor()
     return con, cur
 
