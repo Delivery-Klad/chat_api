@@ -556,6 +556,7 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
             res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
         res.sort()
+        json_dict.update({"count": len(res)})
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2]}")
             name = cursor.fetchall()[0][0]
@@ -567,6 +568,7 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
         res = cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND read=0")
         res.sort()
+        json_dict.update({"count": len(res)})
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2].split('_', 1)[1]}")
             name = cursor.fetchall()[0][0]
