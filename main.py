@@ -246,7 +246,7 @@ def get_random():
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id, login FROM users ORDER BY random() LIMIT 30")
         res = cursor.fetchall()
-        res_dict = {}
+        res_dict = {{"count": len(res)}}
         for i in range(len(res)):
             res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
         cursor.close()
@@ -260,11 +260,11 @@ def get_random():
 def find_user(login: str):
     try:
         connect, cursor = db_connect()
-        res_dict = {}
         try:
             if login[-3:] == "_gr":
-                cursor.execute(f"SELECT id, users.login FROM {login} JOIN users ON {login}.id = users.id")
+                cursor.execute(f"SELECT users.id, users.login FROM {login} JOIN users ON {login}.id = users.id")
                 res = cursor.fetchall()
+                res_dict = {{"count": len(res)}}
                 for i in range(len(res)):
                     res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
                 cursor.close()
@@ -274,6 +274,7 @@ def find_user(login: str):
             print(e)
         cursor.execute(f"SELECT id, login FROM users WHERE login LIKE '%{login}%'")
         res = cursor.fetchall()
+        res_dict = {{"count": len(res)}}
         for i in range(len(res)):
             res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
         cursor.close()
