@@ -21,7 +21,7 @@ y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 auth_handler = AuthHandler()
 ip_table = []
 recovery_codes = []
-secret = "root"
+secret = os.environ.get('key')
 
 
 def db_connect():
@@ -401,10 +401,12 @@ def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_w
         cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
         owner_id = cursor.fetchall()[0][0]
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id INTEGER)")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id BIGINTEGER REFERENCES users (id))")
         connect.commit()
         cursor.execute(f"INSERT INTO {chat.name} VALUES({owner_id})")
         connect.commit()
+        cursor.execute(f"SELECT users.login FROM {chat.name} JOIN users ON {chat.name}.id = users.id")
+        print(cursor.fetchall())
         cursor.close()
         connect.close()
         return True
