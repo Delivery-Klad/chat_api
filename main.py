@@ -401,7 +401,7 @@ def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_w
         cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
         owner_id = cursor.fetchall()[0][0]
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id BIGINTEGER REFERENCES users (id))")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id BIGINT REFERENCES users (id))")
         connect.commit()
         cursor.execute(f"INSERT INTO {chat.name} VALUES({owner_id})")
         connect.commit()
