@@ -272,20 +272,6 @@ def find_user(login: str):
         error_log(e)
 
 
-@app.get("/user/can_use_login", tags=["Users"])
-def can_use_login(login: str):
-    try:
-        connect, cursor = db_connect()
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        try:
-            cursor.fetchall()[0][0]
-        except IndexError:
-            return True
-        return False
-    except Exception as e:
-        error_log(e)
-
-
 @app.get("/user/get_id", tags=["Users"])
 def get_id(login: str):
     try:
@@ -343,10 +329,16 @@ def get_groups(user_id: int):
 def create_user(user: User):
     try:
         connect, cursor = db_connect()
-        cursor.execute(f"INSERT INTO users(login, password, pubkey, email) VALUES ('{user.login}','{user.password}',"
-                       f"'{user.pubkey}','{user.email}')")
-        connect.commit()
-        return True
+        cursor.execute(f"SELECT id FROM users WHERE login='{user.login}'")
+        try:
+            cursor.fetchall()[0][0]
+        except IndexError:
+            cursor.execute(
+                f"INSERT INTO users(login, password, pubkey, email) VALUES ('{user.login}','{user.password}',"
+                f"'{user.pubkey}','{user.email}')")
+            connect.commit()
+            return True
+        return False
     except Exception as e:
         error_log(e)
         return JSONResponse(status_code=500)
