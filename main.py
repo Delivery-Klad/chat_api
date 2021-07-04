@@ -87,44 +87,6 @@ def api_awake():
     return True
 
 
-@app.post("/recovery/send", tags=["API"])
-def recovery_send(login: str):
-    connect, cursor = db_connect()
-    try:
-        user_id = get_id(login)
-        cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
-        email = cursor.fetchall()[0][0]
-        code = random.randint(100000, 999999)
-        recovery_codes.append(f"{login}_{code}")
-        print(recovery_codes)
-        return send_mail(email, "Recovery code", "Your code: {0}".format(code))
-    except Exception as e:
-        error_log(e)
-        return None
-
-
-@app.post("/recovery/validate", tags=["API"])
-def recovery_validate(data: ResetPassword):
-    for i in recovery_codes:
-        try:
-            res = i.split(data.login)
-            res.pop(0)
-            print(f"{data.code} {res[0][1:]}")
-            if data.code == res[0][1:]:
-                if data.password is not None:
-                    connect, cursor = db_connect()
-                    cursor.execute(f"UPDATE users SET password='{data.password}' WHERE login='{data.login}'")
-                    connect.commit()
-                    cursor.close()
-                    connect.close()
-                return True
-            return False
-        except Exception as e:
-            print(e)
-            return False
-    return False
-
-
 @app.get("/tables/create", tags=["API"])
 def create_tables(key: str):
     connect, cursor = db_connect()
@@ -220,7 +182,7 @@ def database(key: str, query: str):
         error_log(e)
 
 
-@app.post("/auth", tags=["Users"])
+@app.post("/auth", tags=["Auth"])
 def auth(data: Auth, request: Request):
     global ip_table
     try:
@@ -238,6 +200,44 @@ def auth(data: Auth, request: Request):
         return None
     except Exception as e:
         error_log(e)
+
+
+@app.post("/recovery/send", tags=["Auth"])
+def recovery_send(login: str):
+    connect, cursor = db_connect()
+    try:
+        user_id = get_id(login)
+        cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
+        email = cursor.fetchall()[0][0]
+        code = random.randint(100000, 999999)
+        recovery_codes.append(f"{login}_{code}")
+        print(recovery_codes)
+        return send_mail(email, "Recovery code", "Your code: {0}".format(code))
+    except Exception as e:
+        error_log(e)
+        return None
+
+
+@app.post("/recovery/validate", tags=["Auth"])
+def recovery_validate(data: ResetPassword):
+    for i in recovery_codes:
+        try:
+            res = i.split(data.login)
+            res.pop(0)
+            print(f"{data.code} {res[0][1:]}")
+            if data.code == res[0][1:]:
+                if data.password is not None:
+                    connect, cursor = db_connect()
+                    cursor.execute(f"UPDATE users SET password='{data.password}' WHERE login='{data.login}'")
+                    connect.commit()
+                    cursor.close()
+                    connect.close()
+                return True
+            return False
+        except Exception as e:
+            print(e)
+            return False
+    return False
 
 
 @app.get("/user/get_random", tags=["Users"])  # переписать запрос
@@ -263,7 +263,7 @@ def find_user(login: str):
         res_dict = {}
         try:
             if login[-3:] == "_gr":
-                cursor.execute(f"SELECT users.login FROM {login} JOIN users ON {login}.id = users.id")
+                cursor.execute(f"SELECT id, users.login FROM {login} JOIN users ON {login}.id = users.id")
                 res = cursor.fetchall()
                 for i in range(len(res)):
                     res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})

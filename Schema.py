@@ -4,6 +4,10 @@ tags_metadata = [
         "description": "Operations with API"
     },
     {
+        "name": "Auth",
+        "description": "Auth operations"
+    },
+    {
         "name": "Users",
         "description": "Operations with users"
     },
