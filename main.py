@@ -260,9 +260,20 @@ def get_random():
 def find_user(login: str):
     try:
         connect, cursor = db_connect()
+        res_dict = {}
+        try:
+            if login[-3:] == "_gr":
+                cursor.execute(f"SELECT users.login FROM {login} JOIN users ON {login}.id = users.id")
+                res = cursor.fetchall()
+                for i in range(len(res)):
+                    res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+                cursor.close()
+                connect.close()
+                return res_dict
+        except Exception as e:
+            print(e)
         cursor.execute(f"SELECT id, login FROM users WHERE login LIKE '%{login}%'")
         res = cursor.fetchall()
-        res_dict = {}
         for i in range(len(res)):
             res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
         cursor.close()
@@ -270,6 +281,8 @@ def find_user(login: str):
         return res_dict
     except Exception as e:
         error_log(e)
+    finally:
+        print("finally")
 
 
 @app.get("/user/get_id", tags=["Users"])
@@ -405,8 +418,6 @@ def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_w
         connect.commit()
         cursor.execute(f"INSERT INTO {chat.name} VALUES({owner_id})")
         connect.commit()
-        cursor.execute(f"SELECT users.login FROM {chat.name} JOIN users ON {chat.name}.id = users.id")
-        print(cursor.fetchall())
         cursor.close()
         connect.close()
         return True
