@@ -96,7 +96,8 @@ def create_tables(key: str):
                            'login TEXT NOT NULL UNIQUE,'
                            'password TEXT NOT NULL,'
                            'pubkey TEXT NOT NULL,'
-                           'email TEXT NOT NULL)')
+                           'email TEXT NOT NULL,'
+                           'last_activity TIMESTAMP)')
             cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT NOT NULL UNIQUE,'
                            'name TEXT NOT NULL UNIQUE,'
                            'owner BIGINT NOT NULL)')
@@ -110,11 +111,6 @@ def create_tables(key: str):
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id BIGSERIAL NOT NULL UNIQUE PRIMARY KEY,'
                            'longlink TEXT NOT NULL)')
             connect.commit()
-            cursor.execute("ALTER TABLE users ADD UNIQUE(id)")
-            cursor.execute("ALTER TABLE messages ADD UNIQUE(id)")
-            cursor.execute("ALTER TABLE links ADD UNIQUE(id)")
-            cursor.execute("ALTER TABLE chats ADD UNIQUE(id)")
-            connect.commit()
         cursor.close()
         connect.close()
         return True
@@ -127,10 +123,11 @@ def check_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
         if table == "messages":
+            json_dict = {}
             cursor.execute(f"SELECT * FROM {table}")
             res = cursor.fetchall()
             res.sort()
-            json_dict = {}
+            json_dict.update({"count": len(res)})
             for i in range(len(res)):
                 json_dict.update(
                     {f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": res[i][2], "to_id": res[i][3],
@@ -192,6 +189,10 @@ def auth(data: Auth, request: Request):
         connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
+            date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+            cursor.execute(f"UPDATE users SET last_activity=to_timestamp('{date}','dd-mm-yy hh24:mi:ss') WHERE "
+                           f"login='{data.login}'")
+            cursor.commit()
             token = auth_handler.encode_token(data.login)
             return token
         else:
@@ -346,9 +347,10 @@ def create_user(user: User):
         try:
             cursor.fetchall()[0][0]
         except IndexError:
+            date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
             cursor.execute(
-                f"INSERT INTO users(login, password, pubkey, email) VALUES ('{user.login}','{user.password}',"
-                f"'{user.pubkey}','{user.email}')")
+                f"INSERT INTO users(login, password, pubkey, email, last_activity) VALUES ('{user.login}','{user.password}',"
+                f"'{user.pubkey}','{user.email}', to_timestamp('{date}','dd-mm-yy hh24:mi:ss'))")
             connect.commit()
             return True
         return False
