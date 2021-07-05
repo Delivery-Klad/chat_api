@@ -249,11 +249,11 @@ def get_random():
     try:
         connect, cursor = db_connect()
         res_dict = {}
-        cursor.execute(f"SELECT id, login FROM users ORDER BY random() LIMIT 30")
+        cursor.execute(f"SELECT id, login, last_activity FROM users ORDER BY random() LIMIT 30")
         res = cursor.fetchall()
         res_dict.update({"count": len(res)})
         for i in range(len(res)):
-            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]}})
         cursor.close()
         connect.close()
         return res_dict
@@ -268,19 +268,20 @@ def find_user(login: str):
         res_dict = {}
         try:
             if login[-3:] == "_gr":
-                cursor.execute(f"SELECT users.id, users.login FROM {login} JOIN users ON {login}.id = users.id")
+                cursor.execute(f"SELECT users.id, users.login, users.last_activity FROM {login} JOIN users ON "
+                               f"{login}.id = users.id")
                 res = cursor.fetchall()
                 res_dict.update({"count": len(res)})
                 for i in range(len(res)):
-                    res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+                    res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]}})
                 return res_dict
         except Exception as e:
             print(e)
-        cursor.execute(f"SELECT id, login FROM users WHERE login LIKE '%{login}%'")
+        cursor.execute(f"SELECT id, login, last_activity FROM users WHERE login LIKE '%{login}%'")
         res = cursor.fetchall()
         res_dict.update({"count": len(res)})
         for i in range(len(res)):
-            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1]}})
+            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]}})
         return res_dict
     except Exception as e:
         error_log(e)
