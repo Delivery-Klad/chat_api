@@ -182,17 +182,17 @@ def database(key: str, query: str):
 @app.post("/auth", tags=["Auth"])
 def auth(data: Auth, request: Request):
     global ip_table
+    connect, cursor = db_connect()
     try:
         ip_data = f"{data.login}://:{request.client.host}"
         if ip_data not in ip_table:
             ip_table.append(ip_data)
-        connect, cursor = db_connect()
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
         if bcrypt.checkpw(data.password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8')):
             date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
             cursor.execute(f"UPDATE users SET last_activity=to_timestamp('{date}','dd-mm-yy hh24:mi:ss') WHERE "
                            f"login='{data.login}'")
-            cursor.commit()
+            connect.commit()
             token = auth_handler.encode_token(data.login)
             return token
         else:
@@ -201,6 +201,9 @@ def auth(data: Auth, request: Request):
         return None
     except Exception as e:
         error_log(e)
+    finally:
+        cursor.close()
+        connect.close()
 
 
 @app.post("/recovery/send", tags=["Auth"])
