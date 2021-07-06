@@ -11,3 +11,4 @@ starlette==0.14.2
 rsa==4.7.2
 python-multipart==0.0.5
 yadisk==1.2.14
+fastapi-jwt-auth

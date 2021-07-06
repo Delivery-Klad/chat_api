@@ -19,7 +19,6 @@ class Group(BaseModel):
 
 
 class Message(BaseModel):
-    date: str
     sender: str
     destination: str
     message: int

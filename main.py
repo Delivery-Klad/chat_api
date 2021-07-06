@@ -16,6 +16,7 @@ from Models import *
 from Auth import AuthHandler
 from Schema import *
 
+
 app = FastAPI(openapi_tags=tags_metadata)
 y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 auth_handler = AuthHandler()
@@ -515,13 +516,14 @@ def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_w
 def send_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
         ip_thread(login, request.client.host)
+        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
         sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{message.date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
+                       f"'{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
                        f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
         connect.commit()
         cursor.close()
@@ -536,10 +538,11 @@ def send_message(message: Message, request: Request, login=Depends(auth_handler.
 def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
         ip_thread(login, request.client.host)
+        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
         connect, cursor = db_connect()
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{message.date}', 'dd-mm-yy hh24:mi:ss'),'{message.sender}','{message.destination}',{msg},"
+                       f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{message.sender}','{message.destination}',{msg},"
                        f"{msg}, 0)")
         connect.commit()
         cursor.close()
