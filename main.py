@@ -16,7 +16,6 @@ from Models import *
 from Auth import AuthHandler
 from Schema import *
 
-
 app = FastAPI(openapi_tags=tags_metadata)
 y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 auth_handler = AuthHandler()
@@ -83,13 +82,13 @@ def ip_thread(login: str, ip: str):
 
 
 @app.head("/api/awake", tags=["API"])
-def api_awake():
+async def api_awake():
     print("awake")
     return True
 
 
 @app.get("/tables/create", tags=["API"])
-def create_tables(key: str):
+async def create_tables(key: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
@@ -120,7 +119,7 @@ def create_tables(key: str):
 
 
 @app.get("/tables/check", tags=["API"])
-def check_tables(key: str, table: str):
+async def check_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
         if table == "messages":
@@ -148,7 +147,7 @@ def check_tables(key: str, table: str):
 
 
 @app.delete("/tables/drop", tags=["API"])
-def drop_tables(key: str, table: str):
+async def drop_tables(key: str, table: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
@@ -162,7 +161,7 @@ def drop_tables(key: str, table: str):
 
 
 @app.get("/database", tags=["API"])
-def database(key: str, query: str):
+async def database(key: str, query: str):
     connect, cursor = db_connect()
     try:
         if key == secret:
@@ -181,7 +180,7 @@ def database(key: str, query: str):
 
 
 @app.post("/auth", tags=["Auth"])
-def auth(data: Auth, request: Request):
+async def auth(data: Auth, request: Request):
     global ip_table
     connect, cursor = db_connect()
     try:
@@ -208,7 +207,7 @@ def auth(data: Auth, request: Request):
 
 
 @app.post("/recovery/send", tags=["Auth"])
-def recovery_send(login: str):
+async def recovery_send(login: str):
     connect, cursor = db_connect()
     try:
         user_id = get_id(login)
@@ -224,7 +223,7 @@ def recovery_send(login: str):
 
 
 @app.post("/recovery/validate", tags=["Auth"])
-def recovery_validate(data: ResetPassword):
+async def recovery_validate(data: ResetPassword):
     for i in recovery_codes:
         try:
             res = i.split(data.login)
@@ -246,7 +245,7 @@ def recovery_validate(data: ResetPassword):
 
 
 @app.get("/user/get_random", tags=["Users"])  # переписать запрос
-def get_random():
+async def get_random():
     try:
         connect, cursor = db_connect()
         res_dict = {}
@@ -263,7 +262,7 @@ def get_random():
 
 
 @app.get("/user/find", tags=["Users"])
-def find_user(login: str):
+async def find_user(login: str):
     connect, cursor = db_connect()
     try:
         res_dict = {}
@@ -292,7 +291,7 @@ def find_user(login: str):
 
 
 @app.get("/user/get_id", tags=["Users"])
-def get_id(login: str):
+async def get_id(login: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
@@ -304,7 +303,7 @@ def get_id(login: str):
 
 
 @app.get("/user/get_nickname", tags=["Users"])
-def get_nickname(id: int):
+async def get_nickname(id: int):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT login FROM users WHERE id={id}")
@@ -316,7 +315,7 @@ def get_nickname(id: int):
 
 
 @app.get("/user/get_pubkey", tags=["Users"])
-def get_pubkey(id: str):
+async def get_pubkey(id: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
@@ -328,7 +327,7 @@ def get_pubkey(id: str):
 
 
 @app.get("/user/get_groups", tags=["Users"])
-def get_groups(user_id: int):
+async def get_groups(user_id: int):
     try:
         connect, cursor = db_connect()
         groups = []
@@ -345,7 +344,7 @@ def get_groups(user_id: int):
 
 
 @app.post("/user/create", tags=["Users"])
-def create_user(user: User):
+async def create_user(user: User):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id FROM users WHERE login='{user.login}'")
@@ -365,7 +364,7 @@ def create_user(user: User):
 
 
 @app.put("/user/update_pubkey", tags=["Users"])
-def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -380,7 +379,7 @@ def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.
 
 
 @app.put("/user/update_password", tags=["Users"])
-def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -403,7 +402,7 @@ def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.
 
 
 @app.post("/chat/create", tags=["Users"])
-def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_wrapper)):
+async def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_wrapper)):
     ip_thread(owner, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -434,7 +433,7 @@ def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_w
 
 
 @app.get("/chat/get_id", tags=["Chats"])
-def get_chat_id(name: str):
+async def get_chat_id(name: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
@@ -447,7 +446,7 @@ def get_chat_id(name: str):
 
 
 @app.get("/chat/get_name", tags=["Chats"])
-def get_chat_name(group_id: str):
+async def get_chat_name(group_id: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
@@ -460,7 +459,7 @@ def get_chat_name(group_id: str):
 
 
 @app.get("/chat/get_users", tags=["Chats"])
-def get_chat_users(group_id: str):
+async def get_chat_users(group_id: str):
     try:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
@@ -475,7 +474,7 @@ def get_chat_users(group_id: str):
 
 
 @app.post("/chat/invite", tags=["Chats"])
-def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
+async def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
     ip_thread(user, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -494,7 +493,7 @@ def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth
 
 
 @app.post("/chat/kick", tags=["Chats"])
-def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
+async def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
     ip_thread(user, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -513,7 +512,7 @@ def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_w
 
 
 @app.post("/message/send", tags=["Messages"])
-def send_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def send_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
         ip_thread(login, request.client.host)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
@@ -535,7 +534,7 @@ def send_message(message: Message, request: Request, login=Depends(auth_handler.
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
     try:
         ip_thread(login, request.client.host)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
@@ -554,7 +553,7 @@ def send_chat_message(message: Message, request: Request, login=Depends(auth_han
 
 
 @app.get("/message/get", tags=["Messages"])
-def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     json_dict = {}
     connect, cursor = db_connect()
@@ -596,7 +595,7 @@ def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth
 
 
 @app.get("/message/loop", tags=["Messages"])
-def get_loop_messages(request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def get_loop_messages(request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -659,7 +658,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 @app.get("/url/shorter", tags=["Files"])
-def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     try:
         connect, cursor = db_connect()
@@ -685,8 +684,8 @@ def url_shorter(url: str, destination: str, request: Request, login=Depends(auth
 
 
 @app.get("/url/shorter/chat", tags=["Files"])
-def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
-                     login=Depends(auth_handler.auth_wrapper)):
+async def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
+                           login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     try:
         connect, cursor = db_connect()
