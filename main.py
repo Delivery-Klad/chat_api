@@ -553,19 +553,23 @@ async def send_chat_message(message: Message, request: Request, login=Depends(au
 
 
 @app.get("/message/get", tags=["Messages"])
-async def get_message(chat_id: str, is_chat: int, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None, login=Depends(auth_handler.auth_wrapper)):
     ip_thread(login, request.client.host)
     json_dict = {}
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
+    if max_id is not None:
+        max_id = f"id>{max_id} "
+    else:
+        max_id = ""
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
-                       f"'g%' ORDER BY ID")
+                       f"'g%' {max_id}ORDER BY ID")
         res = cursor.fetchall()
         if int(user_id) != int(chat_id):
             cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id "
-                           f"LIKE 'g%' ORDER BY ID")
+                           f"LIKE 'g%' {max_id}ORDER BY ID")
             res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
         res.sort()
@@ -577,7 +581,8 @@ async def get_message(chat_id: str, is_chat: int, request: Request, login=Depend
                                             "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                             "read": res[i][6]}})
     else:
-        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' ORDER BY ID")
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' {max_id}"
+                       f"ORDER BY ID")
         res = cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND read=0")
         res.sort()
