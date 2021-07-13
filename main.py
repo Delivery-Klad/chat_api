@@ -574,11 +574,14 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
         res.sort()
         json_dict.update({"count": len(res)})
-        print(res[len(res) - 1][0])
+        try:
+            json_dict.update({"max_id": res[len(res) - 1][0]})
+        except IndexError:
+            json_dict.update({"max_id": 0})
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2]}")
             name = cursor.fetchall()[0][0]
-            json_dict.update({f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": name, "to_id": res[i][3],
+            json_dict.update({f"item_{i}": {"date": res[i][1], "from_id": name, "to_id": res[i][3],
                                             "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                             "read": res[i][6]}})
     else:
@@ -588,10 +591,14 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND read=0")
         res.sort()
         json_dict.update({"count": len(res)})
+        try:
+            json_dict.update({"max": res[len(res) - 1][0]})
+        except IndexError:
+            json_dict.update({"max_id": 0})
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2].split('_', 1)[1]}")
             name = cursor.fetchall()[0][0]
-            json_dict.update({f"item_{i}": {"id": res[i][0], "date": res[i][1], "from_id": name, "to_id": res[i][3],
+            json_dict.update({f"item_{i}": {"date": res[i][1], "from_id": name, "to_id": res[i][3],
                                             "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                             "read": res[i][6]}})
     connect.commit()
