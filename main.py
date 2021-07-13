@@ -560,7 +560,7 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchall()[0][0]
     if max_id is not None:
-        max_id = f"id>{max_id} "
+        max_id = f"AND id>{max_id} "
     else:
         max_id = ""
     if is_chat == 0:
