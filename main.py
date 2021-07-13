@@ -592,7 +592,7 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
         res.sort()
         json_dict.update({"count": len(res)})
         try:
-            json_dict.update({"max": res[len(res) - 1][0]})
+            json_dict.update({"max_id": res[len(res) - 1][0]})
         except IndexError:
             json_dict.update({"max_id": 0})
         for i in range(len(res)):
