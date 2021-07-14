@@ -3,14 +3,13 @@ from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-import secrets
+import os
 
 
 class AuthHandler:
     security = HTTPBearer()
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    # secret = secrets.token_hex(30)
-    secret = "1d02a83bd52d133e8b31"
+    secret = os.environ.get('secret')
 
     def encode_token(self, user_id):
         payload = {

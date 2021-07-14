@@ -23,7 +23,6 @@ ip_table = []
 recovery_codes = []
 secret = os.environ.get('key')
 
-# Тут был абоба
 
 def db_connect():
     con = psycopg2.connect(
