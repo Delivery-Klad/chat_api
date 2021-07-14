@@ -46,8 +46,8 @@ def error_log(error):  # просто затычка, будет дописан�
 
 def send_mail(email: str, title: str, text: str):
     try:
-        password = "12345qweryQ"
-        mail_login = "recovery.chat@mail.ru"
+        password = os.environ.get('email_password')
+        mail_login = os.environ.get('email_login')
         url = "smtp.mail.ru"
         server = smtplib.SMTP_SSL(url, 465)
         msg = MIMEMultipart()
