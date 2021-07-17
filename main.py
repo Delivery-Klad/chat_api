@@ -210,8 +210,7 @@ async def auth(data: Auth, request: Request):
 async def recovery_send(login: str):
     connect, cursor = db_connect()
     try:
-        user_id = get_id(login)
-        cursor.execute(f"SELECT email FROM users WHERE id={user_id}")
+        cursor.execute(f"SELECT email FROM users WHERE login={login}")
         email = cursor.fetchall()[0][0]
         code = random.randint(100000, 999999)
         recovery_codes.append(f"{login}_{code}")
