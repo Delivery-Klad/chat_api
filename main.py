@@ -70,8 +70,7 @@ def check_ip(login: str, ip: str):
     if f"{login}://:{ip}" not in ip_table:
         connect, cursor = db_connect()
         cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
-        email = cursor.fetchall()[0][0]
-        send_mail(email, "Unknown device", f"Обнаружен вход с ip {ip}")
+        send_mail(cursor.fetchone()[0], "Unknown device", f"Обнаружен вход с ip {ip}")
         cursor.close()
         connect.close()
 
@@ -84,7 +83,6 @@ def ip_thread(login: str, ip: str):
 @app.get("/api/awake", tags=["API"])
 async def api_awake():
     global app_version, old_version
-    print(f"Awake\n{app_version} {old_version}")
     return f"{app_version} {old_version}"
 
 
@@ -216,11 +214,10 @@ async def recovery_send(login: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
-        email = cursor.fetchall()[0][0]
         code = random.randint(100000, 999999)
         recovery_codes.append(f"{login}_{code}")
         print(recovery_codes)
-        return send_mail(email, "Recovery code", "Your code: {0}".format(code))
+        return send_mail( cursor.fetchone()[0], "Recovery code", "Your code: {0}".format(code))
     except Exception as e:
         error_log(e)
         return None
