@@ -4,6 +4,10 @@ tags_metadata = [
         "description": "Operations with API"
     },
     {
+        "name": "Service",
+        "description": "Service methods"
+    },
+    {
         "name": "Auth",
         "description": "Auth operations"
     },
@@ -27,6 +31,7 @@ tags_metadata = [
 
 '''
 externalDocs": {
-            "description": "Items external docs",
-            "url": "https://fastapi.tiangolo.com/",
+            "description": "",
+            "url": "",
+            }
 '''

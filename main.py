@@ -1,28 +1,29 @@
-import os
-import rsa
-import random
-import yadisk
 from fastapi import FastAPI, Request, Depends, File, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
-import psycopg2
-import bcrypt
-import smtplib
-import threading
-from datetime import datetime
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from rsa.transform import int2bytes, bytes2int
-from Models import *
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from datetime import datetime
 from Auth import AuthHandler
+from Models import *
 from Schema import *
+import threading
+import psycopg2
+import smtplib
+import random
+import yadisk
+import bcrypt
+import rsa
+import os
+
 
 app = FastAPI(openapi_tags=tags_metadata)
 y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
+app_url = "chat-b4ckend.herokuapp.com"
 auth_handler = AuthHandler()
-ip_table = []
-recovery_codes = []
+ip_table, recovery_codes = [], []
 secret = os.environ.get('key')
-app_version = 2.2
+app_version = 2.4
 old_version = 2.0
 
 
@@ -192,6 +193,15 @@ async def database(key: str, query: str):
         connect.close()
 
 
+@app.get("/gen/secret", tags=["Service"])
+async def gen_hex(key: str, hex_length: int):
+    if key == secret:
+        import secrets
+        new_secret = secrets.token_hex(hex_length)
+        return new_secret
+    return None
+
+
 @app.post("/login", tags=["Auth"])
 async def auth_login(data: Auth, request: Request):
     global ip_table
@@ -203,12 +213,12 @@ async def auth_login(data: Auth, request: Request):
         if data.login.lower() == "deleted":
             return False
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
-        if bcrypt.checkpw(data.password.encode("utf-8"), cursor.fetchall()[0][0].encode("utf-8")):
+        if bcrypt.checkpw(data.password.encode("utf-8"), cursor.fetchone()[0].encode("utf-8")):
             date = datetime.utcnow().strftime("%d-%m-%Y %H:%M:%S")
             cursor.execute(f"UPDATE users SET last_activity=to_timestamp('{date}','dd-mm-yy hh24:mi:ss') WHERE "
                            f"login='{data.login}'")
             connect.commit()
-            token = auth_handler.encode_token(data.login)
+            token = auth_handler.encode(data.login)
             return token
         else:
             return False
@@ -228,7 +238,7 @@ async def auth_register(user: User):
     try:
         cursor.execute(f"SELECT id FROM users WHERE login='{user.login}'")
         try:
-            cursor.fetchall()[0][0]
+            cursor.fetchone()[0]
         except IndexError:
             if user.login.lower() == "deleted":
                 return False
@@ -248,7 +258,7 @@ async def auth_register(user: User):
 
 
 @app.delete("/user/remove", tags=["Auth"])
-async def remove_data_request(request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def remove_data_request(request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
@@ -358,7 +368,7 @@ async def get_id(login: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        return cursor.fetchall()[0][0]
+        return cursor.fetchone()[0]
     except IndexError:
         return None
     except Exception as e:
@@ -374,7 +384,7 @@ async def get_nickname(id: int):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id={id}")
-        return cursor.fetchall()[0][0]
+        return cursor.fetchone()[0]
     except IndexError:
         return None
     except Exception as e:
@@ -390,7 +400,7 @@ async def get_pubkey(id: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
-        return cursor.fetchall()[0][0]
+        return cursor.fetchone()[0]
     except IndexError:
         return None
     except Exception as e:
@@ -407,11 +417,9 @@ async def get_groups(user_id: int):
     try:
         groups = []
         cursor.execute("SELECT name FROM chats")
-        res = cursor.fetchall()
-        for el in res:
+        for el in cursor.fetchall():
             cursor.execute(f"SELECT COUNT(id) FROM {el[0]} WHERE id={user_id}")
-            tmp = cursor.fetchall()[0][0]
-            if tmp == 1:
+            if cursor.fetchone()[0] == 1:
                 groups.append(el[0])
         return groups
     except Exception as e:
@@ -423,7 +431,7 @@ async def get_groups(user_id: int):
 
 
 @app.put("/user/update_pubkey", tags=["Users"])
-async def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
@@ -439,13 +447,13 @@ async def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_ha
 
 
 @app.put("/user/update_password", tags=["Users"])
-async def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
         try:
             cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
-            res = bcrypt.checkpw(data.old_password.encode('utf-8'), cursor.fetchall()[0][0].encode('utf-8'))
+            res = bcrypt.checkpw(data.old_password.encode('utf-8'), cursor.fetchone()[0].encode('utf-8'))
         except IndexError:
             res = None
         if res:
@@ -465,21 +473,20 @@ async def create_user(data: NewPassword, request: Request, login=Depends(auth_ha
 
 
 @app.post("/chat/create", tags=["Users"])
-async def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.auth_wrapper)):
+async def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.decode)):
     ip_thread(owner, request.client.host)
     connect, cursor = db_connect()
     try:
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
                        "'information_schema', 'pg_catalog') AND table_schema IN('public', 'myschema');")
-        res = cursor.fetchall()
-        if ('{0}'.format(chat.name),) in res:
+        if ('{0}'.format(chat.name),) in cursor.fetchall():
             return None
         cursor.execute("SELECT COUNT(*) FROM chats")
         res = cursor.fetchall()[0]
         res = str(res).split(',', 1)[0]
         max_id = int(str(res)[1:]) + 1
         cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
-        owner_id = cursor.fetchall()[0][0]
+        owner_id = cursor.fetchone()[0]
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id BIGINT REFERENCES users (id))")
         connect.commit()
@@ -499,7 +506,7 @@ async def get_chat_id(name: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
-        return cursor.fetchall()[0][0]
+        return cursor.fetchone()[0]
     except Exception as e:
         error_log(e)
         return None
@@ -513,7 +520,7 @@ async def get_chat_name(group_id: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-        return cursor.fetchall()[0][0]
+        return cursor.fetchone()[0]
     except Exception as e:
         error_log(e)
         return None
@@ -527,10 +534,8 @@ async def get_chat_users(group_id: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-        name = cursor.fetchall()[0][0]
-        cursor.execute(f"SELECT id FROM {name}")
-        res = cursor.fetchall()
-        return res
+        cursor.execute(f"SELECT id FROM {cursor.fetchone()[0]}")
+        return cursor.fetchall()
     except Exception as e:
         error_log(e)
         return None
@@ -540,14 +545,12 @@ async def get_chat_users(group_id: str):
 
 
 @app.post("/chat/invite", tags=["Chats"])
-async def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
+async def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.decode)):
     ip_thread(user, request.client.host)
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
-        cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
-        owner = cursor.fetchall()[0][0]
-        if owner == user:
+        cursor.execute(f"SELECT login FROM users WHERE id='(SELECT owner FROM chats WHERE name='{invite.name}')'")
+        if cursor.fetchone()[0] == user:
             cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
             connect.commit()
             return True
@@ -561,14 +564,12 @@ async def chat_invite(invite: Invite, request: Request, user=Depends(auth_handle
 
 
 @app.post("/chat/kick", tags=["Chats"])
-async def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.auth_wrapper)):
+async def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.decode)):
     ip_thread(user, request.client.host)
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT owner FROM chats WHERE name='{invite.name}'")
-        cursor.execute(f"SELECT login FROM users WHERE id='{cursor.fetchall()[0][0]}'")
-        owner = cursor.fetchall()[0][0]
-        if owner == user:
+        cursor.execute(f"SELECT login FROM users WHERE id='(SELECT owner FROM chats WHERE name='{invite.name}')'")
+        if cursor.fetchone()[0] == user:
             cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
             connect.commit()
             return True
@@ -582,7 +583,7 @@ async def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.
 
 
 @app.post("/message/send", tags=["Messages"])
-async def send_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def send_message(message: Message, request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
@@ -590,12 +591,10 @@ async def send_message(message: Message, request: Request, login=Depends(auth_ha
         if cursor.fetchone()[0].lower() == "deleted":
             return JSONResponse(status_code=500)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        sender = cursor.fetchall()[0][0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
+                       f"'{date}','dd-mm-yy hh24:mi:ss'),'{message.sender}','{message.destination}',"
                        f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
         connect.commit()
         return JSONResponse(status_code=200)
@@ -608,7 +607,7 @@ async def send_message(message: Message, request: Request, login=Depends(auth_ha
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-async def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
@@ -632,12 +631,12 @@ async def send_chat_message(message: Message, request: Request, login=Depends(au
 
 @app.get("/message/get", tags=["Messages"])
 async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
-                      login=Depends(auth_handler.auth_wrapper)):
+                      login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     json_dict = {}
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-    user_id = cursor.fetchall()[0][0]
+    user_id = cursor.fetchone()[0]
     if max_id is not None:
         max_id = f"AND id>{max_id} "
     else:
@@ -659,8 +658,7 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
             json_dict.update({"max_id": 0})
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2]}")
-            name = cursor.fetchall()[0][0]
-            json_dict.update({f"item_{i}": {"date": res[i][1], "from_id": name, "to_id": res[i][3],
+            json_dict.update({f"item_{i}": {"date": res[i][1], "from_id": cursor.fetchone()[0], "to_id": res[i][3],
                                             "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                             "read": res[i][6]}})
     else:
@@ -676,8 +674,7 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
             json_dict.update({"max_id": 0})
         for i in range(len(res)):
             cursor.execute(f"SELECT login FROM users WHERE id={res[i][2].split('_', 1)[1]}")
-            name = cursor.fetchall()[0][0]
-            json_dict.update({f"item_{i}": {"date": res[i][1], "from_id": name, "to_id": res[i][3],
+            json_dict.update({f"item_{i}": {"date": res[i][1], "from_id": cursor.fetchone()[0], "to_id": res[i][3],
                                             "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                             "read": res[i][6]}})
     connect.commit()
@@ -687,25 +684,21 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
 
 
 @app.get("/message/loop", tags=["Messages"])
-async def get_loop_messages(request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def get_loop_messages(request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        user_id = cursor.fetchall()[0][0]
-        cursor.execute(f"SELECT from_id FROM messages WHERE to_id='{user_id}' AND read=0")
-        res = cursor.fetchall()
+        cursor.execute(f"")
+        cursor.execute(f"SELECT from_id FROM messages WHERE to_id='(SELECT id FROM users WHERE login='{login}')' "
+                       f"AND read=0")
         new_msgs = []
         temp = ''
-        for i in res:
+        for i in cursor.fetchall():
             if i[0] not in new_msgs:
                 new_msgs.append(i[0])
         for i in new_msgs:
             temp += i + ', '
-        if temp != '':
-            return temp[:-2]
-        else:
-            return None
+        return temp[:-2] if temp != '' else None
     except Exception as e:
         error_log(e)
         return None
@@ -720,7 +713,7 @@ async def get_file(id):
     try:
         cursor.execute(f"SELECT longlink FROM links WHERE id={id}")
         try:
-            res = cursor.fetchall()[0][0]
+            res = cursor.fetchone()[0]
         except IndexError:
             res = None
         return RedirectResponse(url=res)
@@ -744,38 +737,34 @@ async def upload_file(file: UploadFile = File(...)):
             y.upload(file.filename, '/' + file.filename)
         except Exception:
             pass
-        link = y.get_download_link('/' + file.filename)
-        os.remove(file.filename)
         cursor.execute("SELECT count(id) FROM links")
-        max_id = int(cursor.fetchall()[0][0]) + 1
-        cursor.execute(f"INSERT INTO links VALUES({max_id}, '{link}')")
+        max_id = int(cursor.fetchone()[0]) + 1
+        cursor.execute(f"INSERT INTO links VALUES({max_id}, '{y.get_download_link('/' + file.filename)}')")
         connect.commit()
         return max_id
     except Exception as e:
         error_log(e)
         return None
     finally:
+        os.remove(file.filename)
         cursor.close()
         connect.close()
 
 
 @app.get("/url/shorter", tags=["Files"])
-async def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.auth_wrapper)):
+async def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
-        link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
+        link = f"{app_url}/file/get/file_{url}".encode('utf-8')
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        user_id = cursor.fetchall()[0][0]
+        cursor.execute(f"SELECT id,pubkey FROM users WHERE login='{login}'")
+        data = cursor.fetchone()
+        encrypt_link1 = encrypt(link, data[1])
         cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
-        res = cursor.fetchall()[0][0]
-        encrypt_link = encrypt(link.encode('utf-8'), res)
-        cursor.execute(f"SELECT pubkey FROM users WHERE id={user_id}")
-        res = cursor.fetchall()[0][0]
-        encrypt_link1 = encrypt(link.encode('utf-8'), res)
+        encrypt_link = encrypt(link, cursor.fetchone()[0])
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES "
-                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{user_id}','{destination}',"
+                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{data[0]}','{destination}',"
                        f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link1)}, 0)")
         connect.commit()
         return True
@@ -788,18 +777,15 @@ async def url_shorter(url: str, destination: str, request: Request, login=Depend
 
 
 @app.get("/url/shorter/chat", tags=["Files"])
-async def url_shorter_chat(url: str, sender: str, destination: str, request: Request,
-                           login=Depends(auth_handler.auth_wrapper)):
+async def url_shorter_chat(url: str, sender: str, target: str, request: Request, login=Depends(auth_handler.decode)):
     ip_thread(login, request.client.host)
     connect, cursor = db_connect()
     try:
-        link = f"chat-b4ckend.herokuapp.com/file/get/file_{url}"
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
-        res = cursor.fetchall()[0][0]
-        encrypt_link = encrypt(link.encode('utf-8'), res)
+        cursor.execute(f"SELECT pubkey FROM users WHERE id={target}")
+        encrypt_link = encrypt(f"{app_url}/file/get/file_{url}".encode('utf-8'), cursor.fetchone()[0])
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES "
-                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{destination}',"
+                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{target}',"
                        f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link)}, 0)")
         connect.commit()
         return True

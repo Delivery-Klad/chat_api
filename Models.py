@@ -19,7 +19,7 @@ class Group(BaseModel):
 
 
 class Message(BaseModel):
-    sender: str
+    sender: Optional[str] = None
     destination: str
     message: int
     message1: Optional[int] = None

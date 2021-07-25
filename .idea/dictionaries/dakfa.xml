@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="dakfa">
     <words>
+      <w>bcrypt</w>
       <w>bigserial</w>
       <w>bytea</w>
       <w>herokuapp</w>
