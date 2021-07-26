@@ -17,14 +17,14 @@ import rsa
 import os
 
 
-app = FastAPI(openapi_tags=tags_metadata)
+app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)
 y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 app_url = "chat-b4ckend.herokuapp.com"
 auth_handler = AuthHandler()
 ip_table, recovery_codes = [], []
 secret = os.environ.get('key')
-app_version = 2.4
-old_version = 2.0
+app_version = 2.6
+old_version = 2.4
 
 
 def error_log(error):  # просто затычка, будет дописано
@@ -86,6 +86,15 @@ def check_ip(login: str, ip: str):
 def ip_thread(login: str, ip: str):
     thread = threading.Thread(target=check_ip, args=(login, ip))
     thread.start()
+
+
+@app.get("/gen/secret", tags=["Service"])
+async def gen_hex(key: str, hex_length: int):
+    if key == secret:
+        import secrets
+        new_secret = secrets.token_hex(hex_length)
+        return new_secret
+    return None
 
 
 @app.get("/api/awake", tags=["API"])
@@ -191,15 +200,6 @@ async def database(key: str, query: str):
     finally:
         cursor.close()
         connect.close()
-
-
-@app.get("/gen/secret", tags=["Service"])
-async def gen_hex(key: str, hex_length: int):
-    if key == secret:
-        import secrets
-        new_secret = secrets.token_hex(hex_length)
-        return new_secret
-    return None
 
 
 @app.post("/login", tags=["Auth"])
@@ -591,10 +591,12 @@ async def send_message(message: Message, request: Request, login=Depends(auth_ha
         if cursor.fetchone()[0].lower() == "deleted":
             return JSONResponse(status_code=500)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        sender = cursor.fetchone()[0]
         msg = int2bytes(message.message)
         msg1 = int2bytes(message.message1)
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{date}','dd-mm-yy hh24:mi:ss'),'{message.sender}','{message.destination}',"
+                       f"'{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
                        f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
         connect.commit()
         return JSONResponse(status_code=200)
@@ -615,9 +617,11 @@ async def send_chat_message(message: Message, request: Request, login=Depends(au
         if cursor.fetchone()[0].lower() == "deleted":
             return JSONResponse(status_code=500)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        sender = f"{message.sender}_{cursor.fetchone()[0]}"
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{message.sender}','{message.destination}',{msg},"
+                       f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',{msg},"
                        f"{msg}, 0)")
         connect.commit()
         return JSONResponse(status_code=200)
