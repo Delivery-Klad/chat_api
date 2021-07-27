@@ -1,18 +1,15 @@
-from fastapi import FastAPI, Request, Depends, File, UploadFile
-from fastapi.responses import JSONResponse, RedirectResponse
-from Routers import API
-from database.Variables import admin_user, auth_handler, app_url
+from fastapi import FastAPI, Request, Depends
+from fastapi.responses import JSONResponse
+from Routers import API, Services, Files
+from database.Variables import auth_handler
 from database.Connect import db_connect
 from Service.Logger import error_log
 from rsa.transform import int2bytes, bytes2int
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from datetime import datetime
 from Service.Models import *
 from Service.Schema import *
-import threading
+from Service.Methods import send_mail
 import psycopg2
-import smtplib
 import random
 import yadisk
 import bcrypt
@@ -22,56 +19,15 @@ import os
 
 app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)
 app.include_router(API.router)
-y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
-ip_table, recovery_codes = [], []
-
-
-def send_mail(email: str, title: str, text: str):
-    try:
-        password = os.environ.get('email_password')
-        mail_login = os.environ.get('email_login')
-        server = smtplib.SMTP_SSL("smtp.mail.ru", 465)
-        msg = MIMEMultipart()
-        msg['Subject'] = title
-        msg['From'] = mail_login
-        msg.attach(MIMEText(text, 'plain'))
-        try:
-            server.login(mail_login, password)
-            server.sendmail(mail_login, email, msg.as_string())
-            return True
-        except Exception as e:
-            error_log(e)
-            return False
-    except Exception as er:
-        error_log(er)
-
-
-def check_ip(login: str, ip: str):
-    global ip_table
-    try:
-        if f"{login}://:{ip}" not in ip_table:
-            connect, cursor = db_connect()
-            cursor.execute(f"SELECT email FROM users WHERE login='{login}'")
-            send_mail(cursor.fetchone()[0], "Unknown device", f"Обнаружен вход с ip {ip}")
-            cursor.close()
-            connect.close()
-    except Exception as e:
-        error_log(e)
-
-
-def ip_thread(login: str, ip: str):
-    thread = threading.Thread(target=check_ip, args=(login, ip))
-    thread.start()
+app.include_router(Services.router)
+app.include_router(Files.router)
+recovery_codes = []
 
 
 @app.post("/login", tags=["Auth"])
-async def auth_login(data: Auth, request: Request):
-    global ip_table
+async def auth_login(data: Auth):
     connect, cursor = db_connect()
     try:
-        ip_data = f"{data.login}://:{request.client.host}"
-        if ip_data not in ip_table:
-            ip_table.append(ip_data)
         if data.login.lower() == "deleted":
             return False
         cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
@@ -120,8 +76,7 @@ async def auth_register(user: User):
 
 
 @app.delete("/user/remove", tags=["Auth"])
-async def remove_data_request(request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
+async def remove_data_request(login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"UPDATE users SET login='Deleted', password='None', pubkey='None', email='None' "
@@ -293,8 +248,7 @@ async def get_groups(user_id: int):
 
 
 @app.put("/user/update_pubkey", tags=["Users"])
-async def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
+async def create_user(pubkey: NewPubkey, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"UPDATE users SET pubkey='{pubkey.pubkey}' WHERE login='{login}'")
@@ -309,8 +263,7 @@ async def create_user(pubkey: NewPubkey, request: Request, login=Depends(auth_ha
 
 
 @app.put("/user/update_password", tags=["Users"])
-async def create_user(data: NewPassword, request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
+async def create_user(data: NewPassword, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         try:
@@ -335,8 +288,7 @@ async def create_user(data: NewPassword, request: Request, login=Depends(auth_ha
 
 
 @app.post("/chat/create", tags=["Users"])
-async def create_chat(chat: Group, request: Request, owner=Depends(auth_handler.decode)):
-    ip_thread(owner, request.client.host)
+async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
@@ -413,8 +365,7 @@ async def get_chat_users(group_id: str, login=Depends(auth_handler.decode)):
 
 
 @app.post("/chat/invite", tags=["Chats"])
-async def chat_invite(invite: Invite, request: Request, user=Depends(auth_handler.decode)):
-    ip_thread(user, request.client.host)
+async def chat_invite(invite: Invite, user=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id='(SELECT owner FROM chats WHERE name='{invite.name}')'")
@@ -432,8 +383,7 @@ async def chat_invite(invite: Invite, request: Request, user=Depends(auth_handle
 
 
 @app.post("/chat/kick", tags=["Chats"])
-async def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.decode)):
-    ip_thread(user, request.client.host)
+async def chat_kick(invite: Invite, user=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id='(SELECT owner FROM chats WHERE name='{invite.name}')'")
@@ -451,8 +401,7 @@ async def chat_kick(invite: Invite, request: Request, user=Depends(auth_handler.
 
 
 @app.post("/message/send", tags=["Messages"])
-async def send_message(message: Message, request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
+async def send_message(message: Message, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id={message.destination}")
@@ -477,8 +426,7 @@ async def send_message(message: Message, request: Request, login=Depends(auth_ha
 
 
 @app.post("/message/send/chat", tags=["Messages"])
-async def send_chat_message(message: Message, request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
+async def send_chat_message(message: Message, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id={message.destination}")
@@ -503,9 +451,8 @@ async def send_chat_message(message: Message, request: Request, login=Depends(au
 
 
 @app.get("/message/get", tags=["Messages"])
-async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
+async def get_message(chat_id: str, is_chat: int, max_id=None,
                       login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
     json_dict = {}
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
@@ -557,8 +504,7 @@ async def get_message(chat_id: str, is_chat: int, request: Request, max_id=None,
 
 
 @app.get("/message/loop", tags=["Messages"])
-async def get_loop_messages(request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
+async def get_loop_messages(login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"")
@@ -578,104 +524,3 @@ async def get_loop_messages(request: Request, login=Depends(auth_handler.decode)
     finally:
         cursor.close()
         connect.close()
-
-
-@app.get("/file/get/file_{id}", tags=["Files"])
-async def get_file(id):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT longlink FROM links WHERE id={id}")
-        try:
-            res = cursor.fetchone()[0]
-        except IndexError:
-            res = None
-        return RedirectResponse(url=res)
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@app.post("/file/upload", tags=["Files"])
-async def upload_file(file: UploadFile = File(...)):
-    connect, cursor = db_connect()
-    try:
-        with open(file.filename, "wb") as out_file:
-            content = await file.read()
-            out_file.write(content)
-        print(os.stat(file.filename).st_size)
-        try:
-            y.upload(file.filename, '/' + file.filename)
-        except Exception:
-            pass
-        cursor.execute("SELECT count(id) FROM links")
-        max_id = int(cursor.fetchone()[0]) + 1
-        cursor.execute(f"INSERT INTO links VALUES({max_id}, '{y.get_download_link('/' + file.filename)}')")
-        connect.commit()
-        return max_id
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        os.remove(file.filename)
-        cursor.close()
-        connect.close()
-
-
-@app.get("/url/shorter", tags=["Files"])
-async def url_shorter(url: str, destination: str, request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
-    try:
-        link = f"{app_url}/file/get/file_{url}".encode('utf-8')
-        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT id,pubkey FROM users WHERE login='{login}'")
-        data = cursor.fetchone()
-        encrypt_link1 = encrypt(link, data[1])
-        cursor.execute(f"SELECT pubkey FROM users WHERE id={destination}")
-        encrypt_link = encrypt(link, cursor.fetchone()[0])
-        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES "
-                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{data[0]}','{destination}',"
-                       f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link1)}, 0)")
-        connect.commit()
-        return True
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@app.get("/url/shorter/chat", tags=["Files"])
-async def url_shorter_chat(url: str, sender: str, target: str, request: Request, login=Depends(auth_handler.decode)):
-    ip_thread(login, request.client.host)
-    connect, cursor = db_connect()
-    try:
-        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT pubkey FROM users WHERE id={target}")
-        encrypt_link = encrypt(f"{app_url}/file/get/file_{url}".encode('utf-8'), cursor.fetchone()[0])
-        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES "
-                       f"(to_timestamp('{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{target}',"
-                       f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link)}, 0)")
-        connect.commit()
-        return True
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-def encrypt(msg: bytes, pubkey):
-    try:
-        pubkey = pubkey.split(', ')
-        pubkey = rsa.PublicKey(int(pubkey[0]), int(pubkey[1]))
-        encrypt_message = rsa.encrypt(msg, pubkey)
-        return encrypt_message
-    except Exception as e:
-        error_log(e)
-        return None

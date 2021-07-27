@@ -1,6 +1,4 @@
-from database.Connect import db_connect
-from database.Variables import admin_user, app_version, old_version, auth_handler
-from Service.Logger import error_log
+from database.Variables import admin_user, auth_handler
 from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/Service", tags=["Service"])
