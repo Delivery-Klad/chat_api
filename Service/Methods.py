@@ -1,7 +1,6 @@
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from Service.Logger import error_log
-import threading
 import smtplib
 import rsa
 import os

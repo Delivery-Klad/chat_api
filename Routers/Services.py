@@ -1,7 +1,7 @@
 from database.Variables import admin_user, auth_handler
 from fastapi import APIRouter, Depends
 
-router = APIRouter(prefix="/Service", tags=["Service"])
+router = APIRouter(prefix="/service", tags=["Service"])
 
 
 @router.get("/gen/secret")

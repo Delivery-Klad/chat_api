@@ -12,19 +12,23 @@ tags_metadata = [
         "description": "Auth operations"
     },
     {
-        "name": "Users",
+        "name": "Recovery",
+        "description": "Recovery operations"
+    },
+    {
+        "name": "User",
         "description": "Operations with users"
     },
     {
-        "name": "Chats",
+        "name": "Chat",
         "description": "Operations with chats"
     },
     {
-        "name": "Messages",
+        "name": "Message",
         "description": "Operations with messages"
     },
     {
-        "name": "Files",
+        "name": "File",
         "description": "Operations with files"
     },
 ]

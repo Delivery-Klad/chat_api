@@ -9,10 +9,10 @@ from datetime import datetime
 import psycopg2
 import os
 
-router = APIRouter(prefix="/file", tags=["Files"])
+router = APIRouter(prefix="/file", tags=["File"])
 
 
-@router.get("/get/file_{id}", tags=["Files"])
+@router.get("/get/file_{id}")
 async def get_file(id):
     connect, cursor = db_connect()
     try:
@@ -30,7 +30,7 @@ async def get_file(id):
         connect.close()
 
 
-@router.post("/upload", tags=["Files"])
+@router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     connect, cursor = db_connect()
     try:
@@ -40,8 +40,8 @@ async def upload_file(file: UploadFile = File(...)):
         print(os.stat(file.filename).st_size)
         try:
             y.upload(file.filename, '/' + file.filename)
-        except Exception:
-            pass
+        except Exception as e:
+            error_log(e)
         cursor.execute("SELECT count(id) FROM links")
         max_id = int(cursor.fetchone()[0]) + 1
         cursor.execute(f"INSERT INTO links VALUES({max_id}, '{y.get_download_link('/' + file.filename)}')")
@@ -56,7 +56,7 @@ async def upload_file(file: UploadFile = File(...)):
         connect.close()
 
 
-@router.get("/shorter", tags=["Files"])
+@router.get("/shorter")
 async def url_shorter(url: str, destination: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -80,7 +80,7 @@ async def url_shorter(url: str, destination: str, login=Depends(auth_handler.dec
         connect.close()
 
 
-@router.get("/shorter/chat", tags=["Files"])
+@router.get("/shorter/chat")
 async def url_shorter_chat(url: str, sender: str, target: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
