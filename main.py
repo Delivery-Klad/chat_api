@@ -530,7 +530,7 @@ async def get_chat_name(group_id: str):
 
 
 @app.get("/chat/get_users", tags=["Chats"])
-async def get_chat_users(group_id: str, login: str):
+async def get_chat_users(group_id: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
