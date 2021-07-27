@@ -530,11 +530,17 @@ async def get_chat_name(group_id: str):
 
 
 @app.get("/chat/get_users", tags=["Chats"])
-async def get_chat_users(group_id: str):
+async def get_chat_users(group_id: str, login: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-        cursor.execute(f"SELECT id FROM {cursor.fetchone()[0]}")
+        group_name = cursor.fetchone()[0]
+        cursor.execute(f"SELECT id FROM {group_name} WHERE id=(SELECT id FROM users WHERE login='{login}')")
+        try:
+            cursor.fetchall[0][0]
+        except IndexError:
+            return None
+        cursor.execute(f"SELECT id FROM {group_name}")
         return cursor.fetchall()
     except Exception as e:
         error_log(e)
@@ -618,7 +624,8 @@ async def send_chat_message(message: Message, request: Request, login=Depends(au
             return JSONResponse(status_code=500)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        sender = f"{message.sender}_{cursor.fetchone()[0]}"
+        sender_id = cursor.fetchone()[0]
+        sender = f"{message.sender}_{sender_id}"
         msg = psycopg2.Binary(int2bytes(message.message))
         cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
                        f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',{msg},"
