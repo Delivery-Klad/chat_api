@@ -7,12 +7,12 @@ from rsa.transform import bytes2int
 router = APIRouter(prefix="/api", tags=["API"])
 
 
-@router.get("/api/awake", tags=["API"])
+@router.get("/awake")
 async def api_awake():
     return f"{app_version} {old_version}"
 
 
-@router.get("/tables/create", tags=["API"])
+@router.get("/tables/create")
 async def create_tables(login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -45,7 +45,7 @@ async def create_tables(login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.get("/tables/check", tags=["API"])
+@router.get("/tables/check")
 async def check_tables(table: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -72,7 +72,7 @@ async def check_tables(table: str, login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.delete("/tables/drop", tags=["API"])
+@router.delete("/tables/drop")
 async def drop_tables(table: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -88,7 +88,7 @@ async def drop_tables(table: str, login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.get("/database", tags=["API"])
+@router.get("/database")
 async def database(query: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:

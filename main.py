@@ -64,15 +64,6 @@ def ip_thread(login: str, ip: str):
     thread.start()
 
 
-@app.get("/gen/secret", tags=["Service"])
-async def gen_hex(hex_length: int, login=Depends(auth_handler.decode)):
-    if login == admin_user:
-        import secrets
-        new_secret = secrets.token_hex(hex_length)
-        return new_secret
-    return None
-
-
 @app.post("/login", tags=["Auth"])
 async def auth_login(data: Auth, request: Request):
     global ip_table
