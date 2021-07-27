@@ -4,7 +4,7 @@ from Service.Logger import error_log
 from fastapi import APIRouter, Depends
 from rsa.transform import bytes2int
 
-router = APIRouter(prefix="api", tags=["API"])
+router = APIRouter(prefix="/api", tags=["API"])
 
 
 @router.get("/api/awake", tags=["API"])
