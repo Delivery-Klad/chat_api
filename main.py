@@ -537,7 +537,7 @@ async def get_chat_users(group_id: str, login: str):
         group_name = cursor.fetchone()[0]
         cursor.execute(f"SELECT id FROM {group_name} WHERE id=(SELECT id FROM users WHERE login='{login}')")
         try:
-            cursor.fetchall[0][0]
+            cursor.fetchall()[0][0]
         except IndexError:
             return None
         cursor.execute(f"SELECT id FROM {group_name}")
