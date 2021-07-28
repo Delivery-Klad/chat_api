@@ -1,7 +1,12 @@
-from database.Variables import admin_user, auth_handler
+from database.Variables import admin_user, auth_handler, app_version, old_version
 from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/service", tags=["Service"])
+
+
+@router.get("/awake")
+async def api_awake():
+    return f"{app_version} {old_version}"
 
 
 @router.get("/gen/secret")

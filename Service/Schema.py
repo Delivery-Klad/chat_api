@@ -1,11 +1,11 @@
 tags_metadata = [
     {
-        "name": "Service",
-        "description": "Service methods"
+        "name": "Database",
+        "description": "Operations with database"
     },
     {
-        "name": "API",
-        "description": "Operations with API"
+        "name": "Service",
+        "description": "Service methods"
     },
     {
         "name": "Auth",
