@@ -1,5 +1,5 @@
 from database.Connect import db_connect
-from database.Variables import admin_user, auth_handler
+from Service.Variables import admin_user, auth_handler
 from Service.Logger import error_log
 from fastapi import APIRouter, Depends
 from rsa.transform import bytes2int
@@ -88,10 +88,7 @@ async def database(query: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         if login == admin_user:
-            if "select" in query.lower():
-                return "Too use select operations /tables/check"
             cursor.execute(query)
-            connect.commit()
             try:
                 return cursor.fetchall()
             except Exception as e:
@@ -102,5 +99,6 @@ async def database(query: str, login=Depends(auth_handler.decode)):
         error_log(e)
         return None
     finally:
+        connect.commit()
         cursor.close()
         connect.close()

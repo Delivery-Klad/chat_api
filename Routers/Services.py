@@ -1,4 +1,4 @@
-from database.Variables import admin_user, auth_handler, app_version, old_version
+from Service.Variables import admin_user, auth_handler, app_version, old_version
 from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/service", tags=["Service"])

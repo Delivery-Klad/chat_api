@@ -1,4 +1,4 @@
-from database.Variables import auth_handler
+from Service.Variables import auth_handler
 from database.Connect import db_connect
 from Service.Logger import error_log
 from Service.Models import *

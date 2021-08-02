@@ -1,5 +1,5 @@
 from database.Connect import db_connect
-from database.Variables import auth_handler, app_url, y
+from Service.Variables import auth_handler, app_url
 from fastapi import File, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi import APIRouter, Depends
@@ -7,9 +7,11 @@ from Service.Logger import error_log
 from Service.Methods import encrypt
 from datetime import datetime
 import psycopg2
+import yadisk
 import os
 
 router = APIRouter(prefix="/file", tags=["File"])
+y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 
 
 @router.get("/get/file_{id}")

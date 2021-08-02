@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization
+from database.database import engine, SessionLocal
+import database.models as db_models
 from Service.Schema import *
+from dependencies import get_db
 
 
-app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)
+# db_models.DataBase.metadata.create_all(bind=engine)
+app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)  # dependencies=[Depends(get_db)]
 app.include_router(Services.router)
 app.include_router(Database.router)
 app.include_router(Authorization.router)

@@ -1,4 +1,4 @@
-from database.Variables import auth_handler
+from Service.Variables import auth_handler
 from database.Connect import db_connect
 from Service.Logger import error_log
 from fastapi import APIRouter, Depends
@@ -16,9 +16,7 @@ async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
         if ('{0}'.format(chat.name),) in cursor.fetchall():
             return None
         cursor.execute("SELECT COUNT(*) FROM chats")
-        res = cursor.fetchall()[0]
-        res = str(res).split(',', 1)[0]
-        max_id = int(str(res)[1:]) + 1
+        max_id = int(cursor.fetchone()[0]) + 1
         cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
         owner_id = cursor.fetchone()[0]
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
