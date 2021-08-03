@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends
 from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization
-from database.database import engine, SessionLocal
+# from database.database import engine, SessionLocal
 import database.models as db_models
 from Service.Schema import *
 from dependencies import get_db
