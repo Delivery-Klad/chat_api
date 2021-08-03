@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, BigInteger, LargeBinary, TIMESTAMP
+"""from sqlalchemy import Column, Integer, Text, BigInteger, LargeBinary, TIMESTAMP
 from database.database import DataBase
 
 
@@ -34,3 +34,4 @@ class Links(DataBase):
     __tablename__ = "links"
     id = Column(BigInteger, nullable=False, unique=True, primary_key=True, index=True, autoincrement=True)
     longlink = Column(Text, nullable=False)
+"""
