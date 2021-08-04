@@ -1,3 +1,9 @@
+try:  # для локального запуска
+    from set_var import test
+    test()
+except ModuleNotFoundError:
+    pass
+
 from fastapi import FastAPI, Depends
 from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization
 # from database.database import engine, SessionLocal

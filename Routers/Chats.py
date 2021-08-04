@@ -2,9 +2,52 @@ from Service.Variables import auth_handler
 from database.Connect import db_connect
 from Service.Logger import error_log
 from fastapi import APIRouter, Depends
+from rsa.transform import bytes2int
 from Service.Models import *
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+
+
+@router.get("/get_all")
+async def get_all_chats(login=Depends(auth_handler.decode)):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        local_id = cursor.fetchone()[0]
+        cursor.execute(f"SELECT DISTINCT to_id FROM messages WHERE from_id='{local_id}'")
+        res = cursor.fetchall()
+        local_messages = {}
+        local_message_id = 0
+        local_messages.update({"count": len(res)})
+        for i in res:
+            cursor.execute(f"SELECT login FROM users WHERE id='{i[0]}'")
+            username = cursor.fetchone()[0]
+            cursor.execute(f"SELECT message1 FROM messages WHERE to_id='{i[0]}' AND from_id='{local_id}' "
+                           f"ORDER BY id DESC LIMIT 1")
+            local_messages.update({f"item_{local_message_id}": {"user_id": i[0], "username": username,
+                                                                "message": bytes2int(cursor.fetchone()[0])}})
+            local_message_id += 1
+        cursor.execute(f"SELECT DISTINCT from_id FROM messages WHERE from_id LIKE 'g%_{local_id}'")
+        res = cursor.fetchall()
+        print(local_messages['count'])
+        local_messages.update({"count": local_messages['count'] + len(res)})
+        print(local_messages['count'])
+        for i in res:
+            local_chat_id = i[0].split('_')[0]
+            cursor.execute(f"SELECT name FROM chats WHERE id='{local_chat_id}'")
+            chat_name = cursor.fetchone()[0]
+            cursor.execute(f"SELECT message FROM messages WHERE to_id='{local_id}' AND from_id='{i[0]}' "
+                           f"ORDER BY id DESC LIMIT 1")
+            local_messages.update({f"item_{local_message_id}": {"user_id": local_chat_id, "username": chat_name,
+                                                                "message": bytes2int(cursor.fetchone()[0])}})
+            local_message_id += 1
+        return local_messages
+    except Exception as e:
+        error_log(e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
 
 
 @router.post("/create")
