@@ -16,7 +16,7 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
         local_id = cursor.fetchone()[0]
         # SELECT DISTINCT to_id FROM messages WHERE from_id='{local_id}'
         cursor.execute(f"SELECT DISTINCT to_id FROM (SELECT to_id FROM messages WHERE from_id='{local_id}'"
-                       f"ORDER BY date)")
+                       f"ORDER BY date) AS msgs")
         res = cursor.fetchall()
         local_messages = {}
         local_message_id = 0
