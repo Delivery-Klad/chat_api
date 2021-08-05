@@ -3,7 +3,7 @@ from database.Connect import db_connect
 from Service.Logger import error_log
 from Service.Models import *
 from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 import bcrypt
 
@@ -45,7 +45,9 @@ async def auth_register(user: User):
             cursor.fetchone()[0]
         except IndexError:
             if user.login.lower() == "deleted":
-                return False
+                return None
+            elif "_gr" in user.login.lower():
+                return None
             date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
             cursor.execute(f"INSERT INTO users(login, password, pubkey, email, last_activity) VALUES ('{user.login}',"
                            f"'{user.password}','{user.pubkey}','{user.email}', to_timestamp('{date}',"
@@ -59,3 +61,9 @@ async def auth_register(user: User):
     finally:
         cursor.close()
         connect.close()
+
+
+@router.put("/refresh")
+async def refresh_token(login=Depends(auth_handler.decode)):
+    token = auth_handler.encode(login)
+    return token
