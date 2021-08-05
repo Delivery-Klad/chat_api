@@ -18,6 +18,7 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
         cursor.execute(f"SELECT DISTINCT to_id FROM (SELECT to_id FROM messages WHERE from_id='{local_id}'"
                        f"ORDER BY date) AS msgs")
         res = cursor.fetchall()
+        print(res)
         local_messages = {}
         local_message_id = 0
         local_messages.update({"count": len(res)})
