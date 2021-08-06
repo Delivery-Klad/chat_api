@@ -14,21 +14,32 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
     try:
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
         local_id = cursor.fetchone()[0]
-        # SELECT DISTINCT to_id FROM messages WHERE from_id='{local_id}'
-        cursor.execute(f"SELECT DISTINCT to_id FROM (SELECT DISTINCT to_id, date FROM messages WHERE "
-                       f"from_id='{local_id}') AS msgs ORDER BY date")
+        cursor.execute(f"SELECT to_id FROM messages WHERE from_id='{local_id}' ORDER BY date DESC")
         res = cursor.fetchall()
-        print(res)
-        local_messages = {}
-        local_message_id = 0
-        local_messages.update({"count": len(res)})
+        temp = []
         for i in res:
-            cursor.execute(f"SELECT login FROM users WHERE id='{i[0]}'")
+            try:
+                temp.index(i[0])
+            except ValueError:
+                temp.append(i[0])
+        res = temp
+        local_messages = {"count": len(res)}
+        local_message_id = 0
+        for i in res:
+            cursor.execute(f"SELECT login FROM users WHERE id='{i}'")
             username = cursor.fetchone()[0]
-            cursor.execute(f"SELECT message1 FROM messages WHERE to_id='{i[0]}' AND from_id='{local_id}' "
-                           f"ORDER BY id DESC LIMIT 1")  # подправить
-            local_messages.update({f"item_{local_message_id}": {"user_id": i[0], "username": username,
-                                                                "message": bytes2int(cursor.fetchone()[0])}})
+            """cursor.execute(f"SELECT message1, date FROM messages WHERE to_id='{i}' AND from_id='{local_id}' "
+                           f"ORDER BY id DESC LIMIT 1")
+            msg_data1 = cursor.fetchone()
+            cursor.execute(f"SELECT message, date FROM messages WHERE to_id='{local_id}' AND from_id='{i}' "
+                           f"ORDER BY id DESC LIMIT 1")
+            msg_data2 = cursor.fetchone()"""
+            cursor.execute(f"(SELECT message1, id FROM messages WHERE to_id='{i}' AND from_id='{local_id}') UNION "
+                           f"(SELECT message, id FROM messages WHERE to_id='{local_id}' AND from_id='{i}') "
+                           f"ORDER BY id DESC LIMIT 1")
+            data = cursor.fetchone()
+            local_messages.update({f"item_{local_message_id}": {"user_id": i, "username": username,
+                                                                "message": bytes2int(data[0])}})
             local_message_id += 1
         cursor.execute(f"SELECT DISTINCT from_id FROM messages WHERE from_id LIKE 'g%_{local_id}'")
         res = cursor.fetchall()
