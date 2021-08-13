@@ -42,7 +42,7 @@ async def auth_register(user: User):
     try:
         cursor.execute(f"SELECT id FROM users WHERE login='{user.login}'")
         try:
-            cursor.fetchone()[0]
+            cursor.fetchall()[0]
         except IndexError:
             if user.login.lower() == "deleted":
                 return None
