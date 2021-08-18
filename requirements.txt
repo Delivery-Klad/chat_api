@@ -13,3 +13,4 @@ rsa==4.7.2
 python-multipart==0.0.5
 yadisk==1.2.14
 SQLAlchemy==1.4.21
+beautifulsoup4==4.9.3

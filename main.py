@@ -4,12 +4,10 @@ try:  # для локального запуска
 except ModuleNotFoundError:
     pass
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization
-# from database.database import engine, SessionLocal
-import database.models as db_models
 from Service.Schema import *
-from dependencies import get_db
+from Service.Variables import find_app_versions
 
 
 # db_models.DataBase.metadata.create_all(bind=engine)
@@ -22,3 +20,8 @@ app.include_router(Users.router)
 app.include_router(Chats.router)
 app.include_router(Messages.router)
 app.include_router(Files.router)
+
+
+@app.on_event("startup")
+async def startup():
+    find_app_versions()
