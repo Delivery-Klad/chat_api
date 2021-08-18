@@ -16,5 +16,5 @@ def find_app_versions():
     version_search = soup.find_all("span", {"class": "css-truncate-target"})
     old_ver_search = soup.find_all("span", {"class": "flex-shrink-0 mb-md-2 mr-2 mr-md-0 Label Label--prerelease"})
 
-    app_version = int(version_search[0].string)
-    old_version = int(version_search[len(version_search) - len(old_ver_search) * 2 + 1].string)
+    app_version = float(version_search[0].string)
+    old_version = float(version_search[len(version_search) - len(old_ver_search) * 2 + 1].string)
