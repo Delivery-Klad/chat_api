@@ -7,7 +7,6 @@ except ModuleNotFoundError:
 from fastapi import FastAPI
 from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization
 from Service.Schema import *
-from Service.Variables import find_app_versions
 
 
 # db_models.DataBase.metadata.create_all(bind=engine)
@@ -21,7 +20,3 @@ app.include_router(Chats.router)
 app.include_router(Messages.router)
 app.include_router(Files.router)
 
-
-@app.on_event("startup")
-async def startup():
-    find_app_versions()
