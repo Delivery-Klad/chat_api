@@ -23,36 +23,25 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
             except ValueError:
                 temp.append(i[0])
         res = temp
-        local_messages = {"count": len(res)}
-        local_message_id = 0
+        local_messages = []
         for i in res:
             cursor.execute(f"SELECT login FROM users WHERE id='{i}'")
             username = cursor.fetchone()[0]
-            """cursor.execute(f"SELECT message1, date FROM messages WHERE to_id='{i}' AND from_id='{local_id}' "
-                           f"ORDER BY id DESC LIMIT 1")
-            msg_data1 = cursor.fetchone()
-            cursor.execute(f"SELECT message, date FROM messages WHERE to_id='{local_id}' AND from_id='{i}' "
-                           f"ORDER BY id DESC LIMIT 1")
-            msg_data2 = cursor.fetchone()"""
             cursor.execute(f"(SELECT message1, id FROM messages WHERE to_id='{i}' AND from_id='{local_id}') UNION "
                            f"(SELECT message, id FROM messages WHERE to_id='{local_id}' AND from_id='{i}') "
                            f"ORDER BY id DESC LIMIT 1")
             data = cursor.fetchone()
-            local_messages.update({f"item_{local_message_id}": {"user_id": i, "username": username,
-                                                                "message": bytes2int(data[0])}})
-            local_message_id += 1
+            local_messages.append({"user_id": i, "username": username, "message": bytes2int(data[0])})
         cursor.execute(f"SELECT DISTINCT from_id FROM messages WHERE from_id LIKE 'g%_{local_id}'")
         res = cursor.fetchall()
-        local_messages.update({"count": local_messages['count'] + len(res)})
         for i in res:
             local_chat_id = i[0].split('_')[0]
             cursor.execute(f"SELECT name FROM chats WHERE id='{local_chat_id}'")
             chat_name = cursor.fetchone()[0]
             cursor.execute(f"SELECT message FROM messages WHERE to_id='{local_id}' AND from_id LIKE '{local_chat_id}%' "
                            f"ORDER BY id DESC LIMIT 1")
-            local_messages.update({f"item_{local_message_id}": {"user_id": local_chat_id, "username": chat_name,
-                                                                "message": bytes2int(cursor.fetchone()[0])}})
-            local_message_id += 1
+            local_messages.append({"user_id": local_chat_id, "username": chat_name,
+                                   "message": bytes2int(cursor.fetchone()[0])})
         return local_messages
     except Exception as e:
         error_log(e)

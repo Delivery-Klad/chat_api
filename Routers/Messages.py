@@ -112,26 +112,3 @@ async def get_message(chat_id: str, is_chat: int, max_id=None,
     cursor.close()
     connect.close()
     return json_dict
-
-
-@router.get("/loop")
-async def get_loop_messages(login=Depends(auth_handler.decode)):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"")
-        cursor.execute(f"SELECT from_id FROM messages WHERE to_id='(SELECT id FROM users WHERE login='{login}')' "
-                       f"AND read=0")
-        new_msgs = []
-        temp = ''
-        for i in cursor.fetchall():
-            if i[0] not in new_msgs:
-                new_msgs.append(i[0])
-        for i in new_msgs:
-            temp += i + ', '
-        return temp[:-2] if temp != '' else None
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
