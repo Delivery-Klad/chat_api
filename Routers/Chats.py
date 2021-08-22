@@ -27,21 +27,23 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
         for i in res:
             cursor.execute(f"SELECT login FROM users WHERE id='{i}'")
             username = cursor.fetchone()[0]
-            cursor.execute(f"(SELECT message1, id FROM messages WHERE to_id='{i}' AND from_id='{local_id}') UNION "
-                           f"(SELECT message, id FROM messages WHERE to_id='{local_id}' AND from_id='{i}') "
+            cursor.execute(f"(SELECT message1, read FROM messages WHERE to_id='{i}' AND from_id='{local_id}') UNION "
+                           f"(SELECT message, read FROM messages WHERE to_id='{local_id}' AND from_id='{i}') "
                            f"ORDER BY id DESC LIMIT 1")
             data = cursor.fetchone()
-            local_messages.append({"user_id": i, "username": username, "message": bytes2int(data[0])})
+            local_messages.append({"user_id": i, "username": username, "message": bytes2int(data[0]),
+                                   "read": data[1]})
         cursor.execute(f"SELECT DISTINCT from_id FROM messages WHERE from_id LIKE 'g%_{local_id}'")
         res = cursor.fetchall()
         for i in res:
             local_chat_id = i[0].split('_')[0]
             cursor.execute(f"SELECT name FROM chats WHERE id='{local_chat_id}'")
             chat_name = cursor.fetchone()[0]
-            cursor.execute(f"SELECT message FROM messages WHERE to_id='{local_id}' AND from_id LIKE '{local_chat_id}%' "
-                           f"ORDER BY id DESC LIMIT 1")
-            local_messages.append({"user_id": local_chat_id, "username": chat_name,
-                                   "message": bytes2int(cursor.fetchone()[0])})
+            cursor.execute(f"SELECT message, read FROM messages WHERE to_id='{local_id}' AND from_id LIKE "
+                           f"'{local_chat_id}%' ORDER BY id DESC LIMIT 1")
+            data = cursor.fetchone()
+            local_messages.append({"user_id": local_chat_id, "username": chat_name, "message": bytes2int(data[0]),
+                                   "read": data[1]})
         return local_messages
     except Exception as e:
         error_log(e)
