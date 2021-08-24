@@ -33,18 +33,18 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
             data = cursor.fetchone()
             local_messages.append({"user_id": i, "username": username, "message": bytes2int(data[0]),
                                    "read": data[1]})
-        cursor.execute(f"SELECT DISTINCT from_id FROM messages WHERE from_id LIKE 'g%_{local_id}'")
-        # add to_id
+        cursor.execute(f"SELECT DISTINCT group_id FROM members WHERE user_id={local_id}")
         res = cursor.fetchall()
         for i in res:
-            local_chat_id = i[0].split('_')[0]
+            local_chat_id = i[0]
             cursor.execute(f"SELECT name FROM chats WHERE id='{local_chat_id}'")
             chat_name = cursor.fetchone()[0]
             cursor.execute(f"SELECT message, read FROM messages WHERE to_id='{local_id}' AND from_id LIKE "
                            f"'{local_chat_id}%' ORDER BY id DESC LIMIT 1")
             data = cursor.fetchone()
-            local_messages.append({"user_id": local_chat_id, "username": chat_name, "message": bytes2int(data[0]),
-                                   "read": data[1]})
+            if data is not None:
+                local_messages.append({"user_id": local_chat_id, "username": chat_name, "message": bytes2int(data[0]),
+                                       "read": data[1]})
         return local_messages
     except Exception as e:
         error_log(e)
@@ -58,18 +58,15 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
 async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ("
-                       "'information_schema', 'pg_catalog') AND table_schema IN('public', 'myschema');")
-        if ('{0}'.format(chat.name),) in cursor.fetchall():
+        cursor.execute(f"SELECT COUNT(name) FROM chats WHERE name='{chat.name}'")
+        if cursor.fetchone()[0] > 0:
             return None
         cursor.execute("SELECT COUNT(*) FROM chats")
         max_id = int(cursor.fetchone()[0]) + 1
         cursor.execute(f"SELECT id FROM users WHERE login='{owner}'")
         owner_id = cursor.fetchone()[0]
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {chat.name}(id BIGINT REFERENCES users (id))")
-        connect.commit()
-        cursor.execute(f"INSERT INTO {chat.name} VALUES({owner_id})")
+        cursor.execute(f"INSERT INTO members VALUES('g{max_id}', {owner_id})")
         connect.commit()
         return True
     except Exception as e:
@@ -112,14 +109,13 @@ async def get_chat_name(group_id: str):
 async def get_chat_users(group_id: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-        group_name = cursor.fetchone()[0]
-        cursor.execute(f"SELECT id FROM {group_name} WHERE id=(SELECT id FROM users WHERE login='{login}')")
+        cursor.execute(f"SELECT user_id FROM members WHERE user_id=(SELECT id FROM users WHERE login='{login}')"
+                       f" AND group_id='{group_id}'")
         try:
             cursor.fetchall()[0][0]
         except IndexError:
             return None
-        cursor.execute(f"SELECT id FROM {group_name}")
+        cursor.execute(f"SELECT user_id FROM members WHERE group_id='{group_id}'")
         return cursor.fetchall()
     except Exception as e:
         error_log(e)
@@ -133,9 +129,10 @@ async def get_chat_users(group_id: str, login=Depends(auth_handler.decode)):
 async def chat_invite(invite: Invite, user=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT login FROM users WHERE id='(SELECT owner FROM chats WHERE name='{invite.name}')'")
+        cursor.execute(f"SELECT login FROM users WHERE id=(SELECT owner FROM chats WHERE name='{invite.name}')")
         if cursor.fetchone()[0] == user:
-            cursor.execute(f"INSERT INTO {invite.name} VALUES({invite.user})")
+            cursor.execute(f"INSERT INTO members VALUES((SELECT id FROM chats WHERE name='{invite.name}'),"
+                           f"{invite.user})")
             connect.commit()
             return True
         return False
@@ -151,9 +148,10 @@ async def chat_invite(invite: Invite, user=Depends(auth_handler.decode)):
 async def chat_kick(invite: Invite, user=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT login FROM users WHERE id='(SELECT owner FROM chats WHERE name='{invite.name}')'")
+        cursor.execute(f"SELECT login FROM users WHERE id=(SELECT owner FROM chats WHERE name='{invite.name}')")
         if cursor.fetchone()[0] == user:
-            cursor.execute(f"DELETE FROM {invite.name} WHERE id={invite.user}")
+            cursor.execute(f"DELETE FROM members WHERE user_id={invite.user} AND group_id=(SELECT "
+                           f"id FROM chats WHERE name='{invite.name}')")
             connect.commit()
             return True
         return False

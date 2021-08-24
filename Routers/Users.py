@@ -13,12 +13,11 @@ router = APIRouter(prefix="/user", tags=["User"])
 async def get_random():
     connect, cursor = db_connect()
     try:
-        res_dict = {}
+        res_dict = []
         cursor.execute(f"SELECT id, login, last_activity FROM users ORDER BY random() LIMIT 30")
         res = cursor.fetchall()
-        res_dict.update({"count": len(res)})
         for i in range(len(res)):
-            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]}})
+            res_dict.append({"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]})
         return res_dict
     except Exception as e:
         error_log(e)
@@ -31,24 +30,19 @@ async def get_random():
 @router.get("/find")
 async def find_user(login: str):
     connect, cursor = db_connect()
+    res_dict = []
     try:
-        res_dict = {}
-        try:
-            if login[-3:] == "_gr":
-                cursor.execute(f"SELECT users.id, users.login, users.last_activity FROM {login} JOIN users ON "
-                               f"{login}.id = users.id")
-                res = cursor.fetchall()
-                res_dict.update({"count": len(res)})
-                for i in range(len(res)):
-                    res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]}})
-                return res_dict
-        except Exception as e:
-            print(e)
-        cursor.execute(f"SELECT id, login, last_activity FROM users WHERE login LIKE '%{login}%'")
-        res = cursor.fetchall()
-        res_dict.update({"count": len(res)})
-        for i in range(len(res)):
-            res_dict.update({f"user_{i}": {"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]}})
+        if login[-3:] == "_gr":
+            cursor.execute(f"SELECT users.id, users.login, users.last_activity FROM members JOIN users ON "
+                           f"members.user_id = users.id WHERE group_id=(SELECT id FROM chats WHERE name='{login}')")
+            res = cursor.fetchall()
+            for i in range(len(res)):
+                res_dict.append({"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]})
+        else:
+            cursor.execute(f"SELECT id, login, last_activity FROM users WHERE login LIKE '%{login}%'")
+            res = cursor.fetchall()
+            for i in range(len(res)):
+                res_dict.append({"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]})
         return res_dict
     except Exception as e:
         error_log(e)

@@ -28,6 +28,8 @@ async def create_tables(login=Depends(auth_handler.decode)):
                            'message BYTEA NOT NULL,'
                            'message1 BYTEA,'
                            'read INTEGER NOT NULL)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS members(group_id TEXT NOT NULL,'
+                           'user_id BIGINT NOT NULL REFERENCES users (id))')
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id BIGSERIAL NOT NULL UNIQUE PRIMARY KEY,'
                            'longlink TEXT NOT NULL)')
             connect.commit()
