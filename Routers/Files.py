@@ -14,7 +14,7 @@ router = APIRouter(prefix="/file", tags=["File"])
 y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
 
 
-@router.get("/get/file_{id}")
+@router.get("/{id}")
 async def get_file(id):
     connect, cursor = db_connect()
     try:
@@ -32,7 +32,7 @@ async def get_file(id):
         connect.close()
 
 
-@router.post("/upload")
+@router.post("/")
 async def upload_file(file: UploadFile = File(...)):
     connect, cursor = db_connect()
     try:
@@ -58,11 +58,11 @@ async def upload_file(file: UploadFile = File(...)):
         connect.close()
 
 
-@router.get("/shorter")
+@router.patch("/")
 async def url_shorter(url: str, destination: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        link = f"{app_url}/file/get/file_{url}".encode('utf-8')
+        link = f"{app_url}/file/{url}".encode('utf-8')
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
         cursor.execute(f"SELECT id,pubkey FROM users WHERE login='{login}'")
         data = cursor.fetchone()
@@ -82,7 +82,7 @@ async def url_shorter(url: str, destination: str, login=Depends(auth_handler.dec
         connect.close()
 
 
-@router.get("/shorter/chat")
+@router.put("/")
 async def url_shorter_chat(url: str, sender: str, target: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:

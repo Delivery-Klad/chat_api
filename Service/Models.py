@@ -19,6 +19,7 @@ class Group(BaseModel):
 
 
 class Message(BaseModel):
+    is_chat: bool
     sender: Optional[str] = None
     destination: str
     message: int

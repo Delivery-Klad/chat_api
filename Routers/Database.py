@@ -7,7 +7,7 @@ from rsa.transform import bytes2int
 router = APIRouter(prefix="/database", tags=["Database"])
 
 
-@router.get("/create")
+@router.post("/")
 async def create_tables(login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -42,7 +42,7 @@ async def create_tables(login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.get("/check")
+@router.get("/")
 async def check_tables(table: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -69,7 +69,7 @@ async def check_tables(table: str, login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.delete("/drop")
+@router.delete("/")
 async def drop_tables(table: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -85,7 +85,7 @@ async def drop_tables(table: str, login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.get("/")
+@router.patch("/")
 async def database(query: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:

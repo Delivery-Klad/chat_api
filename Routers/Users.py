@@ -9,8 +9,25 @@ import bcrypt
 router = APIRouter(prefix="/user", tags=["User"])
 
 
-@router.get("/get_random")  # переписать запрос
-async def get_random():
+@router.get("/")
+async def user_get_handler(random: Optional[bool] = None, user_id: Optional[bool] = None, find: Optional[bool] = None,
+                           name: Optional[bool] = None, pubkey: Optional[bool] = None, groups: Optional[bool] = None,
+                           login: Optional[str] = None, id: Optional[int] = None):
+    if random:
+        return get_random()
+    elif user_id:
+        return get_id(login) if login is not None else JSONResponse(status_code=500)
+    elif find:
+        return find_user(login) if login is not None else JSONResponse(status_code=500)
+    elif name:
+        return get_nickname(id) if id is not None else JSONResponse(status_code=500)
+    elif pubkey:
+        return get_pubkey(id) if id is not None else JSONResponse(status_code=500)
+    elif groups:
+        return get_groups(id) if id is not None else JSONResponse(status_code=500)
+
+
+def get_random():
     connect, cursor = db_connect()
     try:
         res_dict = []
@@ -27,8 +44,22 @@ async def get_random():
         connect.close()
 
 
-@router.get("/find")
-async def find_user(login: str):
+def get_id(login: str):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        return cursor.fetchone()[0]
+    except IndexError:
+        return None
+    except Exception as e:
+        error_log(e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+def find_user(login: str):
     connect, cursor = db_connect()
     res_dict = []
     try:
@@ -52,24 +83,7 @@ async def find_user(login: str):
         connect.close()
 
 
-@router.get("/get_id")
-async def get_id(login: str):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        return cursor.fetchone()[0]
-    except IndexError:
-        return None
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@router.get("/get_nickname")
-async def get_nickname(id: int):
+def get_nickname(id: int):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id={id}")
@@ -84,8 +98,7 @@ async def get_nickname(id: int):
         connect.close()
 
 
-@router.get("/get_pubkey")
-async def get_pubkey(id: str):
+def get_pubkey(id: int):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT pubkey FROM users WHERE id={id}")
@@ -100,8 +113,7 @@ async def get_pubkey(id: str):
         connect.close()
 
 
-@router.get("/get_groups")
-async def get_groups(user_id: int):
+def get_groups(user_id: int):
     connect, cursor = db_connect()
     try:
         groups = []
@@ -119,7 +131,7 @@ async def get_groups(user_id: int):
         connect.close()
 
 
-@router.put("/update_pubkey")
+@router.put("/")
 async def create_user(pubkey: NewPubkey, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -134,7 +146,7 @@ async def create_user(pubkey: NewPubkey, login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.put("/update_password")
+@router.patch("/")
 async def create_user(data: NewPassword, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -159,7 +171,7 @@ async def create_user(data: NewPassword, login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.delete("/remove")
+@router.delete("/")
 async def remove_data_request(login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:

@@ -8,60 +8,10 @@ from rsa.transform import int2bytes, bytes2int
 from datetime import datetime
 import psycopg2
 
-router = APIRouter(prefix="/message", tags=["Message"])
+router = APIRouter(prefix="/messages", tags=["Message"])
 
 
-@router.post("/send")
-async def send_message(message: Message, login=Depends(auth_handler.decode)):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT login FROM users WHERE id={message.destination}")
-        if cursor.fetchone()[0].lower() == "deleted":
-            return JSONResponse(status_code=500)
-        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        sender = cursor.fetchone()[0]
-        msg = int2bytes(message.message)
-        msg1 = int2bytes(message.message1)
-        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
-                       f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
-        connect.commit()
-        return JSONResponse(status_code=200)
-    except Exception as e:
-        error_log(e)
-        return JSONResponse(status_code=500)
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@router.post("/send/chat")
-async def send_chat_message(message: Message, login=Depends(auth_handler.decode)):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT login FROM users WHERE id={message.destination}")
-        if cursor.fetchone()[0].lower() == "deleted":
-            return JSONResponse(status_code=500)
-        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
-        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
-        sender_id = cursor.fetchone()[0]
-        sender = f"{message.sender}_{sender_id}"
-        msg = psycopg2.Binary(int2bytes(message.message))
-        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
-                       f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',{msg},"
-                       f"{msg}, 0)")
-        connect.commit()
-        return JSONResponse(status_code=200)
-    except Exception as e:
-        error_log(e)
-        return JSONResponse(status_code=500)
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@router.get("/get")
+@router.get("/")
 async def get_message(chat_id: str, is_chat: int, max_id=None,
                       login=Depends(auth_handler.decode)):
     json_dict = {}
@@ -112,3 +62,38 @@ async def get_message(chat_id: str, is_chat: int, max_id=None,
     cursor.close()
     connect.close()
     return json_dict
+
+
+@router.post("/")
+async def send_message(message: Message, login=Depends(auth_handler.decode)):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT login FROM users WHERE id={message.destination}")
+        if cursor.fetchone()[0].lower() == "deleted":
+            return JSONResponse(status_code=500)
+        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+        cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
+        if not message.is_chat:
+            sender = cursor.fetchone()[0]
+            msg = int2bytes(message.message)
+            msg1 = int2bytes(message.message1)
+            cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
+                           f"'{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
+                           f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
+            connect.commit()
+        else:
+            sender_id = cursor.fetchone()[0]
+            sender = f"{message.sender}_{sender_id}"
+            msg = psycopg2.Binary(int2bytes(message.message))
+            cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
+                           f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',{msg},"
+                           f"{msg}, 0)")
+            connect.commit()
+            return JSONResponse(status_code=200)
+        return JSONResponse(status_code=200)
+    except Exception as e:
+        error_log(e)
+        return JSONResponse(status_code=500)
+    finally:
+        cursor.close()
+        connect.close()

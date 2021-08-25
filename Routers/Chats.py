@@ -2,14 +2,58 @@ from Service.Variables import auth_handler
 from database.Connect import db_connect
 from Service.Logger import error_log
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from rsa.transform import bytes2int
 from Service.Models import *
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 
-@router.get("/get_all")
-async def get_all_chats(login=Depends(auth_handler.decode)):
+@router.get("/")
+async def chats_get_handler_wo_header(chat_id: Optional[bool] = None, chat_name: Optional[bool] = None,
+                                      name: Optional[str] = None, id: Optional[str] = None):
+    if chat_id:
+        return get_chat_id(name) if name is not None else JSONResponse(status_code=500)
+    if chat_name:
+        return get_chat_name(id) if id is not None else JSONResponse(status_code=500)
+
+
+@router.put("/")
+async def chats_get_handler_with_header(all: Optional[bool] = None, chat_users: Optional[bool] = None,
+                                        id: Optional[str] = None, login=Depends(auth_handler.decode)):
+    if all:
+        return get_all_chats(login)
+    if chat_users:
+        return get_chat_users(id, login) if id is not None else JSONResponse(status_code=500)
+
+
+def get_chat_id(name: str):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
+        return cursor.fetchone()[0]
+    except Exception as e:
+        error_log(e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+def get_chat_name(group_id: str):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
+        return cursor.fetchone()[0]
+    except Exception as e:
+        error_log(e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+def get_all_chats(login: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
@@ -54,7 +98,26 @@ async def get_all_chats(login=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.post("/create")
+def get_chat_users(group_id: str, login: str):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT user_id FROM members WHERE user_id=(SELECT id FROM users WHERE login='{login}')"
+                       f" AND group_id='{group_id}'")
+        try:
+            cursor.fetchall()[0][0]
+        except IndexError:
+            return None
+        cursor.execute(f"SELECT user_id FROM members WHERE group_id='{group_id}'")
+        return cursor.fetchall()
+    except Exception as e:
+        error_log(e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+@router.post("/")
 async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -77,55 +140,7 @@ async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.get("/get_id")
-async def get_chat_id(name: str):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT id FROM chats WHERE name='{name}'")
-        return cursor.fetchone()[0]
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@router.get("/get_name")
-async def get_chat_name(group_id: str):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT name FROM chats WHERE id='{group_id}'")
-        return cursor.fetchone()[0]
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@router.get("/get_users")
-async def get_chat_users(group_id: str, login=Depends(auth_handler.decode)):
-    connect, cursor = db_connect()
-    try:
-        cursor.execute(f"SELECT user_id FROM members WHERE user_id=(SELECT id FROM users WHERE login='{login}')"
-                       f" AND group_id='{group_id}'")
-        try:
-            cursor.fetchall()[0][0]
-        except IndexError:
-            return None
-        cursor.execute(f"SELECT user_id FROM members WHERE group_id='{group_id}'")
-        return cursor.fetchall()
-    except Exception as e:
-        error_log(e)
-        return None
-    finally:
-        cursor.close()
-        connect.close()
-
-
-@router.post("/invite")
+@router.patch("/")
 async def chat_invite(invite: Invite, user=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
@@ -144,7 +159,7 @@ async def chat_invite(invite: Invite, user=Depends(auth_handler.decode)):
         connect.close()
 
 
-@router.post("/kick")
+@router.delete("/")
 async def chat_kick(invite: Invite, user=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:

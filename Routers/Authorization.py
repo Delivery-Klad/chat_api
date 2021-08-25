@@ -10,19 +10,19 @@ import bcrypt
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/login", tags=["Auth"])
-async def auth_login(data: Auth):
+@router.get("/", tags=["Auth"])
+async def auth_login(login: str, password: str):
     connect, cursor = db_connect()
     try:
-        if data.login.lower() == "deleted":
+        if login.lower() == "deleted":
             return False
-        cursor.execute(f"SELECT password FROM users WHERE login='{data.login}'")
-        if bcrypt.checkpw(data.password.encode("utf-8"), cursor.fetchone()[0].encode("utf-8")):
+        cursor.execute(f"SELECT password FROM users WHERE login='{login}'")
+        if bcrypt.checkpw(password.encode("utf-8"), cursor.fetchone()[0].encode("utf-8")):
             date = datetime.utcnow().strftime("%d-%m-%Y %H:%M:%S")
             cursor.execute(f"UPDATE users SET last_activity=to_timestamp('{date}','dd-mm-yy hh24:mi:ss') WHERE "
-                           f"login='{data.login}'")
+                           f"login='{login}'")
             connect.commit()
-            token = auth_handler.encode(data.login)
+            token = auth_handler.encode(login)
             return token
         else:
             return False
@@ -36,7 +36,7 @@ async def auth_login(data: Auth):
         connect.close()
 
 
-@router.post("/register", tags=["Auth"])
+@router.post("/", tags=["Auth"])
 async def auth_register(user: User):
     connect, cursor = db_connect()
     try:
@@ -63,7 +63,7 @@ async def auth_register(user: User):
         connect.close()
 
 
-@router.put("/refresh")
+@router.patch("/")
 async def refresh_token(login=Depends(auth_handler.decode)):
     token = auth_handler.encode(login)
     return token

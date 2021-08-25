@@ -9,7 +9,7 @@ router = APIRouter(prefix="/recovery", tags=["Recovery"])
 recovery_codes = []
 
 
-@router.post("/send")
+@router.get("/")
 async def recovery_send(login: str):
     global recovery_codes
     connect, cursor = db_connect()
@@ -27,7 +27,7 @@ async def recovery_send(login: str):
         connect.close()
 
 
-@router.post("/validate")
+@router.post("/")
 async def recovery_validate(data: ResetPassword):
     global recovery_codes
     for i in recovery_codes:

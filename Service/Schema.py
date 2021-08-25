@@ -1,7 +1,7 @@
 tags_metadata = [
     {
         "name": "Database",
-        "description": "Operations with database"
+        "description": "Operations with database (Swagger only)"
     },
     {
         "name": "Service",
