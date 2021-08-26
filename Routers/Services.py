@@ -10,7 +10,7 @@ router = APIRouter(prefix="/service", tags=["Service"])
 async def api_awake():
     soup = Soup(requests.get("https://github.com/Delivery-Klad/chat_desktop/releases").text, 'html.parser')
     version_search = soup.find_all("span", {"class": "css-truncate-target"})
-    old_ver_search = soup.find_all("span", {"class": "markdown-body"})
+    old_ver_search = soup.find_all("div", {"class": "markdown-body"})
 
     app_version = float(version_search[0].string)
     old_version = float(version_search[len(version_search) - len(old_ver_search) * 2 + 1].string)

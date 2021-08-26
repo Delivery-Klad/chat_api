@@ -4,6 +4,8 @@ try:  # для локального запуска
 except ModuleNotFoundError:
     pass
 
+import os
+import Service.Variables as Var
 from fastapi import FastAPI
 from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization
 from Service.Schema import *
@@ -20,3 +22,11 @@ app.include_router(Chats.router)
 app.include_router(Messages.router)
 app.include_router(Files.router)
 
+
+@app.on_event("startup")
+async def test():
+    link = os.environ.get("DATABASE_URL")[11:].split('/')
+    Var.database = link[1]
+    link = link[0].split('@')
+    Var.user, Var.password = link[0].split(':')
+    Var.host, Var.port = link[1].split(':')

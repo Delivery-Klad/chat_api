@@ -10,7 +10,7 @@ import bcrypt
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.get("/", tags=["Auth"])
+@router.get("/")
 async def auth_login(login: str, password: str):
     connect, cursor = db_connect()
     try:
@@ -36,7 +36,7 @@ async def auth_login(login: str, password: str):
         connect.close()
 
 
-@router.post("/", tags=["Auth"])
+@router.post("/")
 async def auth_register(user: User):
     connect, cursor = db_connect()
     try:

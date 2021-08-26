@@ -1,5 +1,11 @@
+from enum import Enum
 from pydantic import BaseModel
 from typing import Optional
+
+
+class Backup(Enum):
+    backup = "backup"
+    restore = "restore"
 
 
 class Auth(BaseModel):

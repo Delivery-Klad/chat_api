@@ -1,6 +1,7 @@
 import linecache
 from sys import exc_info
 
+
 def error_log(error):
     try:
         exc_type, exc_obj, tb = exc_info()
