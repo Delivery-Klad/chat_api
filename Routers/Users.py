@@ -31,7 +31,8 @@ def get_random():
     connect, cursor = db_connect()
     try:
         res_dict = []
-        cursor.execute(f"SELECT id, login, last_activity FROM users ORDER BY random() LIMIT 30")
+        cursor.execute(f"SELECT id, login, last_activity FROM users WHERE login NOT LIKE 'Service' "
+                       f"ORDER BY random() LIMIT 30")
         res = cursor.fetchall()
         for i in range(len(res)):
             res_dict.append({"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]})
@@ -70,7 +71,8 @@ def find_user(login: str):
             for i in range(len(res)):
                 res_dict.append({"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]})
         else:
-            cursor.execute(f"SELECT id, login, last_activity FROM users WHERE login LIKE '%{login}%'")
+            cursor.execute(f"SELECT id, login, last_activity FROM users WHERE login LIKE '%{login}%' AND login NOT LIKE"
+                           f" 'Service'")
             res = cursor.fetchall()
             for i in range(len(res)):
                 res_dict.append({"id": res[i][0], "login": res[i][1], "last_activity": res[i][2]})

@@ -4,6 +4,10 @@ tags_metadata = [
         "description": "Operations with database (Swagger only)"
     },
     {
+        "name": "Alert",
+        "description": "Alert methods"
+    },
+    {
         "name": "Service",
         "description": "Service methods"
     },

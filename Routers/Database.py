@@ -33,6 +33,7 @@ def create_tables(login=Depends(auth_handler.decode)):
                            'user_id BIGINT NOT NULL REFERENCES users (id))')
             cursor.execute('CREATE TABLE IF NOT EXISTS links(id BIGSERIAL NOT NULL UNIQUE PRIMARY KEY,'
                            'longlink TEXT NOT NULL)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS alerts(id TEXT NOT NULL UNIQUE PRIMARY KEY)')
             connect.commit()
         return True
     except Exception as e:

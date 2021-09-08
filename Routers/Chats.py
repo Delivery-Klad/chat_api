@@ -1,10 +1,13 @@
 from Service.Variables import auth_handler
 from database.Connect import db_connect
+from datetime import datetime
 from Service.Logger import error_log
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
-from rsa.transform import bytes2int
+from rsa.transform import bytes2int, int2bytes
 from Service.Models import *
+from psycopg2 import Binary
+from rsa import encrypt, PublicKey
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -122,7 +125,7 @@ async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT COUNT(name) FROM chats WHERE name='{chat.name}'")
-        if cursor.fetchone()[0] > 0:
+        if cursor.fetchone()[0] != 0:
             return None
         cursor.execute("SELECT COUNT(*) FROM chats")
         max_id = int(cursor.fetchone()[0]) + 1
@@ -130,6 +133,14 @@ async def create_chat(chat: Group, owner=Depends(auth_handler.decode)):
         owner_id = cursor.fetchone()[0]
         cursor.execute(f"INSERT INTO chats VALUES ('g{max_id}', '{chat.name}', {owner_id})")
         cursor.execute(f"INSERT INTO members VALUES('g{max_id}', {owner_id})")
+        connect.commit()
+        cursor.execute(f"SELECT pubkey FROM users WHERE id={owner_id}")
+        pubkey = cursor.fetchone()[0].split(", ")
+        pubkey = PublicKey(int(pubkey[0]), int(pubkey[1]))
+        date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+        msg = Binary(encrypt("Chat created".encode("utf-8"), pubkey))
+        cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
+                       f"'{date}', 'dd-mm-yy hh24:mi:ss'),'g{max_id}_0','{owner_id}',{msg},{msg}, 0)")
         connect.commit()
         return True
     except Exception as e:
@@ -146,8 +157,24 @@ async def chat_invite(invite: Invite, user=Depends(auth_handler.decode)):
     try:
         cursor.execute(f"SELECT login FROM users WHERE id=(SELECT owner FROM chats WHERE name='{invite.name}')")
         if cursor.fetchone()[0] == user:
-            cursor.execute(f"INSERT INTO members VALUES((SELECT id FROM chats WHERE name='{invite.name}'),"
-                           f"{invite.user})")
+            cursor.execute(f"SELECT id FROM chats WHERE name='{invite.name}'")
+            chat_id = cursor.fetchone()[0]
+            cursor.execute(f"SELECT COUNT(*) FROM members WHERE group_id='{chat_id}' AND user_id={invite.user}")
+            if cursor.fetchone()[0] != 0:
+                return False
+            cursor.execute(f"SELECT COUNT(*) FROM users WHERE id={invite.user}")
+            if cursor.fetchone()[0] == 0:
+                return False
+            cursor.execute(f"INSERT INTO members VALUES({chat_id},{invite.user})")
+            connect.commit()
+            cursor.execute(f"SELECT pubkey FROM users WHERE id={invite.user}")
+            pubkey = cursor.fetchone()[0].split(", ")
+            pubkey = PublicKey(int(pubkey[0]), int(pubkey[1]))
+            message = encrypt("You have been invited to a group".encode("utf-8"), pubkey)
+            date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
+            msg = Binary(message)
+            cursor.execute(f"INSERT INTO messages(date, from_id, to_id, message, message1, read) VALUES (to_timestamp("
+                           f"'{date}', 'dd-mm-yy hh24:mi:ss'),'{chat_id}_0','{invite.user}',{msg},{msg}, 0)")
             connect.commit()
             return True
         return False
