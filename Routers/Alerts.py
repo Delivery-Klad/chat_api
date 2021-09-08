@@ -32,6 +32,7 @@ async def add_alert(group_id: str):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"INSERT INTO alerts VALUES ('{group_id}')")
+        connect.commit()
         return True
     except Exception as e:
         error_log(e)
