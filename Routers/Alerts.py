@@ -3,13 +3,14 @@ from typing import List, Optional
 from database.Connect import db_connect
 from Service.Logger import error_log
 
-
 router = APIRouter(prefix="/alert", tags=["Alert"])
 
 
 @router.get("/")
 async def get_alert(groups: Optional[List[str]] = Query(None)):
     print(groups)
+    if groups is None:
+        return False
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT id FROM alerts WHERE id IN ({str(groups)[1:-1]})")
@@ -30,8 +31,22 @@ async def get_alert(groups: Optional[List[str]] = Query(None)):
 async def add_alert(group_id: str):
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"INSERT INTO alert VALUES ({group_id})")
+        cursor.execute(f"INSERT INTO alerts VALUES ('{group_id}')")
         return True
+    except Exception as e:
+        error_log(e)
+        return None
+    finally:
+        cursor.close()
+        connect.close()
+
+
+@router.get("/{user}")
+async def get_alert_groups(user: int):
+    connect, cursor = db_connect()
+    try:
+        cursor.execute(f"SELECT group_id FROM members WHERE user_id={user}")
+        return cursor.fetchall()
     except Exception as e:
         error_log(e)
         return None
