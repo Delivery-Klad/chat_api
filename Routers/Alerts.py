@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Query
-from typing import List, Optional
+from fastapi import APIRouter
+from typing import Optional
 from database.Connect import db_connect
 from Service.Logger import error_log
 
@@ -7,21 +7,23 @@ router = APIRouter(prefix="/alert", tags=["Alert"])
 
 
 @router.get("/")
-async def get_alert(groups: Optional[List[str]] = Query(None)):
-    print(groups)
+async def get_alert(groups: Optional[str] = None):
     if groups is None:
         return False
+    groups = groups.split(",")
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"SELECT id FROM alerts WHERE id IN ({str(groups)[1:-1]})")
+        cursor.execute(f"SELECT id FROM alerts WHERE id_group IN ({str(groups)[1:-1]})")
         try:
-            res = cursor.fetchone()[0]
-            return True
+            res = cursor.fetchall()
+            if not res:
+                return False
+            return res
         except TypeError:
             return False
     except Exception as e:
         error_log(e)
-        return None
+        return False
     finally:
         cursor.close()
         connect.close()
@@ -31,7 +33,9 @@ async def get_alert(groups: Optional[List[str]] = Query(None)):
 async def add_alert(group_id: str):
     connect, cursor = db_connect()
     try:
-        cursor.execute(f"INSERT INTO alerts VALUES ('{group_id}')")
+        cursor.execute("SELECT COUNT(*) FROM alerts")
+        max_id = int(cursor.fetchone()[0]) + 1
+        cursor.execute(f"INSERT INTO alerts VALUES ({max_id}, '{group_id}')")
         connect.commit()
         return True
     except Exception as e:
