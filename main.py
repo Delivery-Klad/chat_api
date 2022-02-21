@@ -5,19 +5,18 @@ except ModuleNotFoundError:
     pass
 
 import os
-import Service.Variables as Var
-from fastapi import FastAPI
 from datetime import datetime
-from database.Connect import db_connect
-from Routers import Database, Services, Files, Chats, Users, Messages, Recovery, Authorization, Alerts
+
+from fastapi import FastAPI
+
 from Service.Schema import *
+from database.Connect import db_connect
+from Service.Methods import parse_database_url
+from Routers import Services, Files, Chats, Users, Messages, Recovery, Authorization, Alerts
 
-
-# db_models.DataBase.metadata.create_all(bind=engine)
-app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)  # dependencies=[Depends(get_db)]
+app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)
 app.include_router(Services.router)
 app.include_router(Alerts.router)
-app.include_router(Database.router)
 app.include_router(Authorization.router)
 app.include_router(Recovery.router)
 app.include_router(Users.router)
@@ -28,11 +27,7 @@ app.include_router(Files.router)
 
 @app.on_event("startup")
 def startup_event():
-    link = os.environ.get("DATABASE_URL")[11:].split('/')
-    Var.database = link[1]
-    link = link[0].split('@')
-    Var.user, Var.password = link[0].split(':')
-    Var.host, Var.port = link[1].split(':')
+    parse_database_url()
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='Service'")
     try:

@@ -26,10 +26,7 @@ async def auth_login(login: str, password: str):
             return token
         else:
             return False
-    except IndexError:
-        return None
-    except Exception as e:
-        error_log(e)
+    except TypeError:
         return None
     finally:
         cursor.close()
@@ -55,9 +52,6 @@ async def auth_register(user: User):
             connect.commit()
             return True
         return False
-    except Exception as e:
-        error_log(e)
-        return JSONResponse(status_code=500)
     finally:
         cursor.close()
         connect.close()

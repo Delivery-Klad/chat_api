@@ -24,6 +24,24 @@ def test_service_awake():
 
 # endregion
 # region Auth
+def test_user_register_deleted():
+    response = client.post("/auth/", json={"login": "deleted",
+                                           "password": hash_password("test_password"),
+                                           "pubkey": "test_pubkey",
+                                           "email": "test_email@rambler.ru"})
+    assert response.status_code == 200
+    assert response.json() is None
+
+
+def test_user_register_wrong_nickname():
+    response = client.post("/auth/", json={"login": "test_login_gr",
+                                           "password": hash_password("test_password"),
+                                           "pubkey": "test_pubkey",
+                                           "email": "test_email@rambler.ru"})
+    assert response.status_code == 200
+    assert response.json() is None
+
+
 def test_user_register():
     response = client.post("/auth/", json={"login": "test_login",
                                            "password": hash_password("test_password"),
@@ -31,6 +49,36 @@ def test_user_register():
                                            "email": "test_email@rambler.ru"})
     assert response.status_code == 200
     assert response.json() is True
+
+
+def test_user_register_exists():
+    response = client.post("/auth/", json={"login": "test_login",
+                                           "password": hash_password("test_password"),
+                                           "pubkey": "test_pubkey",
+                                           "email": "test_email@rambler.ru"})
+    assert response.status_code == 200
+    assert response.json() is False
+
+
+def test_deleted_user_login():
+    global access_token
+    response = client.get("/auth/?login=deleted&password=deleted_password")
+    assert response.status_code == 200
+    assert response.json() is False
+
+
+def test_user_login_wrong_password():
+    global access_token
+    response = client.get("/auth/?login=test_login&password=wrong_password")
+    assert response.status_code == 200
+    assert response.json() is False
+
+
+def test_user_login_not_found():
+    global access_token
+    response = client.get("/auth/?login=fake_login&password=fake_password")
+    assert response.status_code == 200
+    assert response.json() is None
 
 
 def test_user_login():

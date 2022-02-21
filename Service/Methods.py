@@ -4,10 +4,52 @@ import rsa
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from rsa.transform import bytes2int, int2bytes
+from rsa.transform import bytes2int
 
 from Service.Logger import error_log
 from database.Connect import db_connect
+import Service.Variables as Var
+
+
+def create_tables():
+    connect, cursor = db_connect()
+    try:
+        cursor.execute('CREATE TABLE IF NOT EXISTS users(id BIGSERIAL NOT NULL UNIQUE PRIMARY KEY,'
+                       'login TEXT NOT NULL UNIQUE,'
+                       'password TEXT NOT NULL,'
+                       'pubkey TEXT NOT NULL,'
+                       'email TEXT NOT NULL,'
+                       'last_activity TIMESTAMP)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS chats(id TEXT NOT NULL UNIQUE,'
+                       'name TEXT NOT NULL UNIQUE,'
+                       'owner BIGINT NOT NULL REFERENCES users (id))')
+        cursor.execute('CREATE TABLE IF NOT EXISTS messages(id BIGSERIAL NOT NULL UNIQUE PRIMARY KEY,'
+                       'date TIMESTAMP NOT NULL,'
+                       'from_id TEXT NOT NULL,'
+                       'to_id TEXT NOT NULL,'
+                       'message BYTEA NOT NULL,'
+                       'message1 BYTEA,'
+                       'read INTEGER NOT NULL)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS members(group_id TEXT NOT NULL REFERENCES chats (id),'
+                       'user_id BIGINT NOT NULL REFERENCES users (id))')
+        cursor.execute('CREATE TABLE IF NOT EXISTS links(id BIGSERIAL NOT NULL UNIQUE PRIMARY KEY,'
+                       'longlink TEXT NOT NULL)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS alerts(id BIGINT NOT NULL UNIQUE PRIMARY KEY,'
+                       'id_group TEXT NOT NULL)')
+        connect.commit()
+        return True
+    finally:
+        cursor.close()
+        connect.close()
+
+
+def parse_database_url():
+    url = os.environ.get("DATABASE_URL")[11:].split('/')
+    Var.database = url[1]
+    url = url[0].split('@')
+    Var.user, Var.password = url[0].split(':')
+    Var.host, Var.port = url[1].split(':')
+    create_tables()
 
 
 def send_mail(email: str, title: str, text: str):

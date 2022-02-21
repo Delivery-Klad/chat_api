@@ -1,14 +1,17 @@
-from database.Connect import db_connect
-from Service.Variables import auth_handler, app_url
+import os
+from datetime import datetime
+
+import yadisk
+import psycopg2
 from fastapi import File, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi import APIRouter, Depends
+
+from database.Connect import db_connect
+from Service.Variables import auth_handler, app_url
 from Service.Logger import error_log
-from Service.Methods import encrypt
-from datetime import datetime
-import psycopg2
-import yadisk
-import os
+from Service.Methods import encrypt, get_groups, get_id
+
 
 router = APIRouter(prefix="/file", tags=["File"])
 y = yadisk.YaDisk(token=os.environ.get('yandex_token'))
@@ -24,9 +27,6 @@ async def get_file(id):
         except IndexError:
             res = None
         return RedirectResponse(url=res)
-    except Exception as e:
-        error_log(e)
-        return None
     finally:
         cursor.close()
         connect.close()
@@ -49,9 +49,6 @@ async def upload_file(file: UploadFile = File(...)):
         cursor.execute(f"INSERT INTO links VALUES({max_id}, '{y.get_download_link('/' + file.filename)}')")
         connect.commit()
         return max_id
-    except Exception as e:
-        error_log(e)
-        return None
     finally:
         os.remove(file.filename)
         cursor.close()
@@ -74,9 +71,6 @@ async def url_shorter(url: str, destination: str, login=Depends(auth_handler.dec
                        f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link1)}, 0)")
         connect.commit()
         return True
-    except Exception as e:
-        error_log(e)
-        return None
     finally:
         cursor.close()
         connect.close()
@@ -94,9 +88,6 @@ async def url_shorter_chat(url: str, sender: str, target: str, login=Depends(aut
                        f"{psycopg2.Binary(encrypt_link)},{psycopg2.Binary(encrypt_link)}, 0)")
         connect.commit()
         return True
-    except Exception as e:
-        error_log(e)
-        return None
     finally:
         cursor.close()
         connect.close()
