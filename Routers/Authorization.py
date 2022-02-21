@@ -44,7 +44,7 @@ async def auth_register(user: User):
         try:
             cursor.fetchall()[0]
         except IndexError:
-            if user.login.lower() == "deleted":
+            if "deleted" in user.login.lower():
                 return None
             elif "_gr" in user.login.lower():
                 return None

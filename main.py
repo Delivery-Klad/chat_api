@@ -27,7 +27,7 @@ app.include_router(Files.router)
 
 
 @app.on_event("startup")
-async def startup_event():
+def startup_event():
     link = os.environ.get("DATABASE_URL")[11:].split('/')
     Var.database = link[1]
     link = link[0].split('@')

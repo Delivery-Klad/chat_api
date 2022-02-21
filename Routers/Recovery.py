@@ -30,9 +30,9 @@ async def recovery_send(login: str):
 @router.post("/")
 async def recovery_validate(data: ResetPassword):
     global recovery_codes
+    connect, cursor = db_connect()
     for i in recovery_codes:
-        connect, cursor = db_connect()
-        try:
+        if data.login in i:
             res = i.split(data.login)
             res.pop(0)
             print(f"{data.code} {res[0][1:]}")
@@ -40,12 +40,10 @@ async def recovery_validate(data: ResetPassword):
                 if data.password is not None:
                     cursor.execute(f"UPDATE users SET password='{data.password}' WHERE login='{data.login}'")
                     connect.commit()
+                    cursor.close()
+                    connect.close()
                 return True
             return False
-        except Exception as e:
-            print(e)
-            return None
-        finally:
-            cursor.close()
-            connect.close()
+    cursor.close()
+    connect.close()
     return False

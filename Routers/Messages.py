@@ -69,7 +69,7 @@ async def send_message(message: Message, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT login FROM users WHERE id={message.destination}")
-        if cursor.fetchone()[0].lower() == "deleted":
+        if "deleted" in cursor.fetchone()[0].lower():
             return JSONResponse(status_code=500)
         date = datetime.utcnow().strftime('%d-%m-%Y %H:%M:%S')
         cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
