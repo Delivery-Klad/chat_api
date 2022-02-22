@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from typing import Optional
-from database.Connect import db_connect
+
 from Service.Variables import auth_handler
-from Service.Methods import get_groups, get_id
+from Service.Methods import get_groups, get_id, db_connect, get_chat_name
 
 router = APIRouter(prefix="/alert", tags=["Alert"])
 
@@ -15,13 +15,10 @@ async def get_alert(groups: Optional[str] = None):
     connect, cursor = db_connect()
     try:
         cursor.execute(f"SELECT id FROM alerts WHERE id_group IN ({str(groups)[1:-1]})")
-        try:
-            res = cursor.fetchall()
-            if not res:
-                return False
-            return res
-        except TypeError:
+        res = cursor.fetchall()
+        if not res:
             return False
+        return res
     finally:
         cursor.close()
         connect.close()
@@ -31,7 +28,7 @@ async def get_alert(groups: Optional[str] = None):
 async def add_alert(group_id: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        if group_id not in get_groups(get_id(login)):
+        if get_chat_name(group_id) not in get_groups(get_id(login)):
             return False
         cursor.execute("SELECT COUNT(*) FROM alerts")
         max_id = int(cursor.fetchone()[0]) + 1
@@ -58,11 +55,9 @@ async def get_alert_groups(user: int):
 async def delete_alert(group_id: str, login=Depends(auth_handler.decode)):
     connect, cursor = db_connect()
     try:
-        if group_id not in get_groups(get_id(login)):
+        if get_chat_name(group_id) not in get_groups(get_id(login)):
             return False
-        cursor.execute("SELECT COUNT(*) FROM alerts")
-        max_id = int(cursor.fetchone()[0]) + 1
-        cursor.execute(f"INSERT INTO alerts VALUES ({max_id}, '{group_id}')")
+        cursor.execute(f"DELETE from alerts WHERE id_group='{group_id}'")
         connect.commit()
         return True
     finally:

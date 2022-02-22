@@ -1,14 +1,29 @@
 import os
+import linecache
+from sys import exc_info
 
 import rsa
 import smtplib
+import psycopg2
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from rsa.transform import bytes2int
 
-from Service.Logger import error_log
-from database.Connect import db_connect
 import Service.Variables as Var
+
+
+def db_connect():
+    try:
+        con = psycopg2.connect(host=Var.host,
+                               database=Var.database,
+                               user=Var.user,
+                               port=Var.port,
+                               password=Var.password)
+        cur = con.cursor()
+        return con, cur
+    except Exception as e:
+        error_log(e)
+        return None
 
 
 def create_tables():
@@ -172,11 +187,10 @@ def get_groups(user_id: int):
     connect, cursor = db_connect()
     try:
         groups = []
-        cursor.execute("SELECT name FROM chats")
-        for el in cursor.fetchall():
-            cursor.execute(f"SELECT COUNT(id) FROM {el[0]} WHERE id={user_id}")
-            if cursor.fetchone()[0] == 1:
-                groups.append(el[0])
+        cursor.execute(f"SELECT group_id FROM members WHERE user_id={user_id}")
+        for i in cursor.fetchall():
+            cursor.execute(f"SELECT name FROM chats WHERE id='{i[0]}'")
+            groups.append(cursor.fetchone()[0])
         return groups
     except Exception as e:
         error_log(e)
@@ -274,3 +288,18 @@ def get_chat_users(group_id: str, login: str):
     finally:
         cursor.close()
         connect.close()
+
+
+def error_log(error):
+    try:
+        exc_type, exc_obj, tb = exc_info()
+        _frame = tb.tb_frame
+        linenos = tb.tb_lineno
+        filename = _frame.f_code.co_filename
+        linecache.checkcache(filename)
+        line = linecache.getline(filename, linenos, _frame.f_globals)
+        reason = f"EXCEPTION IN ({filename}, LINE {linenos} '{line.strip()}'): {exc_obj}"
+        print(f"{reason}\n")
+    except Exception as e:
+        print(e)
+        print("Возникла ошибка при обработке errorLog (Это вообще как?)")

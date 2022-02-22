@@ -1,11 +1,11 @@
-from Service.Variables import auth_handler
-from database.Connect import db_connect
-from Service.Logger import error_log
-from Service.Models import *
 from datetime import datetime
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
+
 import bcrypt
+from fastapi import APIRouter, Depends
+
+from Service.Variables import auth_handler
+from Service.Methods import db_connect
+from Service.Models import *
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

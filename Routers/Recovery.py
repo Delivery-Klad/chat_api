@@ -1,9 +1,9 @@
-from database.Connect import db_connect
-from Service.Methods import send_mail
-from Service.Logger import error_log
-from Service.Models import *
-from fastapi import APIRouter
 import random
+
+from fastapi import APIRouter
+
+from Service.Methods import send_mail, error_log, db_connect
+from Service.Models import *
 
 router = APIRouter(prefix="/recovery", tags=["Recovery"])
 recovery_codes = []

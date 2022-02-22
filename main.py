@@ -4,14 +4,12 @@ try:  # для локального запуска
 except ModuleNotFoundError:
     pass
 
-import os
 from datetime import datetime
 
 from fastapi import FastAPI
 
 from Service.Schema import *
-from database.Connect import db_connect
-from Service.Methods import parse_database_url
+from Service.Methods import parse_database_url, db_connect
 from Routers import Services, Files, Chats, Users, Messages, Recovery, Authorization, Alerts
 
 app = FastAPI(openapi_tags=tags_metadata, docs_url="/", redoc_url=None)

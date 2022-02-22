@@ -1,9 +1,5 @@
 tags_metadata = [
     {
-        "name": "Database",
-        "description": "Operations with database (Swagger only)"
-    },
-    {
         "name": "Alert",
         "description": "Alert methods"
     },

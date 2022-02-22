@@ -1,34 +1,31 @@
-from Service.Variables import auth_handler
-from database.Connect import db_connect
-from Service.Logger import error_log
-from Service.Models import *
+from datetime import datetime
+
+import psycopg2
 from fastapi.responses import JSONResponse
 from fastapi import APIRouter, Depends
 from rsa.transform import int2bytes, bytes2int
-from datetime import datetime
-import psycopg2
+
+from Service.Variables import auth_handler
+from Service.Methods import db_connect
+from Service.Models import *
 
 router = APIRouter(prefix="/messages", tags=["Message"])
 
 
 @router.get("/")
-async def get_message(chat_id: str, is_chat: int, max_id=None,
+async def get_message(chat_id: str, is_chat: int, max_id: int,
                       login=Depends(auth_handler.decode)):
     json_dict = {}
     connect, cursor = db_connect()
     cursor.execute(f"SELECT id FROM users WHERE login='{login}'")
     user_id = cursor.fetchone()[0]
-    if max_id is not None:
-        max_id = f"AND id>{max_id} "
-    else:
-        max_id = ""
     if is_chat == 0:
         cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id='{chat_id}' AND NOT from_id LIKE "
-                       f"'g%' {max_id}ORDER BY ID")
+                       f"'g%' AND id>{max_id} ORDER BY ID")
         res = cursor.fetchall()
         if int(user_id) != int(chat_id):
             cursor.execute(f"SELECT * FROM messages WHERE to_id='{chat_id}' AND from_id='{user_id}' AND NOT from_id "
-                           f"LIKE 'g%' {max_id}ORDER BY ID")
+                           f"LIKE 'g%' AND id>{max_id} ORDER BY ID")
             res += cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}' AND read=0")
         res.sort()
@@ -43,7 +40,7 @@ async def get_message(chat_id: str, is_chat: int, max_id=None,
                                             "message": bytes2int(res[i][4]), "message1": bytes2int(res[i][5]),
                                             "read": res[i][6]}})
     else:
-        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' {max_id}"
+        cursor.execute(f"SELECT * FROM messages WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND id>{max_id} "
                        f"ORDER BY ID")
         res = cursor.fetchall()
         cursor.execute(f"UPDATE messages SET read=1 WHERE to_id='{user_id}' AND from_id LIKE '{chat_id}%' AND read=0")
@@ -81,6 +78,7 @@ async def send_message(message: Message, login=Depends(auth_handler.decode)):
                            f"'{date}','dd-mm-yy hh24:mi:ss'),'{sender}','{message.destination}',"
                            f"{psycopg2.Binary(msg)},{psycopg2.Binary(msg1)}, 0)")
             connect.commit()
+            return JSONResponse(status_code=200)
         else:
             sender_id = cursor.fetchone()[0]
             sender = f"{message.sender}_{sender_id}"
@@ -90,10 +88,6 @@ async def send_message(message: Message, login=Depends(auth_handler.decode)):
                            f"{msg}, 0)")
             connect.commit()
             return JSONResponse(status_code=200)
-        return JSONResponse(status_code=200)
-    except Exception as e:
-        error_log(e)
-        return JSONResponse(status_code=500)
     finally:
         cursor.close()
         connect.close()

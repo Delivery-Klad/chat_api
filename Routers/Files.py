@@ -7,10 +7,8 @@ from fastapi import File, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi import APIRouter, Depends
 
-from database.Connect import db_connect
 from Service.Variables import auth_handler, app_url
-from Service.Logger import error_log
-from Service.Methods import encrypt, get_groups, get_id
+from Service.Methods import encrypt, db_connect, error_log
 
 
 router = APIRouter(prefix="/file", tags=["File"])

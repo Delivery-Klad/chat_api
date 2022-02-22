@@ -2,10 +2,9 @@ import bcrypt
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from database.Connect import db_connect
 from Service.Variables import auth_handler
 from Service.Models import *
-from Service.Methods import get_random, get_id, find_user, get_nickname, get_pubkey, get_groups
+from Service.Methods import get_random, get_id, find_user, get_nickname, get_pubkey, get_groups, db_connect
 
 router = APIRouter(prefix="/user", tags=["User"])
 
